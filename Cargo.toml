@@ -1,0 +1,21 @@
+[package]
+name = "chain-height-monitor"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+axum = { version = "0.4.8", features = ["ws", "headers"] }
+hyper = { verion = "*" }
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-http = { version = "0.2.0", features = ["fs", "trace"] }
+headers = "0.3"
+futures = { version = "*" }
+clap = { version = "3.1.6", features = [ "derive" ] }
+serde = { version = " 1.0.106", features = [ "derive" ] }
+serde_json = {}
+time = { version = "0.3.7", features = [ "serde" ] }
+anyhow = "1.0.56"
+reqwest = { version = "0.11.10", features = [ "json" ]}
