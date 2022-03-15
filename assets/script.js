@@ -16,11 +16,17 @@ class ChainsState {
     this.sources = sources;
     this.chains = chains;
     this.states = [];
+    this.bestHeight = Array(chains.length).fill(0);
   }
 
   update(source, chain, chainState) {
     console.log(`update: ${source} ${chain} ${this.getIdxByIds(source, chain)} ${JSON.stringify(chainState)}`);
     this.states[this.getIdxByIds(source, chain)] = chainState;
+
+    const bestHeightIdx = this.getChainIdx(chain);
+    if (this.bestHeight[bestHeightIdx] < chainState.height) {
+      this.bestHeight[bestHeightIdx] = chainState.height;
+    }
   }
 
   getIdxByIds(source, chain) {
@@ -34,9 +40,12 @@ class ChainsState {
     return sourceIdx * this.chains.length + chainIdx;
   }
 
+  getChainIdx(chain) {
+    return this.chains.findIndex((element) => element === chain);
+  }
+
   renderTable() {
     const table = document.createElement('table');
-    // table.border ='1';
 
     console.log(`Rendering: ${JSON.stringify(this)}`);
 
@@ -46,6 +55,12 @@ class ChainsState {
       {
         const th = document.createElement('th');
         th.appendChild(document.createTextNode('Coins \\ Sources'));
+        headerTr.appendChild(th);
+      }
+
+      {
+        const th = document.createElement('th');
+        th.appendChild(document.createTextNode('Best'));
         headerTr.appendChild(th);
       }
 
@@ -61,6 +76,8 @@ class ChainsState {
 
 
     for (var chainIdx = 0; chainIdx < this.chains.length; chainIdx++) {
+      const bestHeight = this.bestHeight[chainIdx];
+
       const tr = document.createElement('tr');
 
       {
@@ -70,10 +87,16 @@ class ChainsState {
         tr.appendChild(th);
       }
 
+      {
+        const td = document.createElement('td');
+        td.appendChild(document.createTextNode(bestHeight));
+        tr.appendChild(td);
+      }
+
       for (var sourceIdx = 0; sourceIdx < this.sources.length; sourceIdx++){
         const td = document.createElement('td');
         const chainState = this.states[this.getIdx(sourceIdx, chainIdx)];
-        td.appendChild(document.createTextNode(chainState ? chainState.height : ""));
+        td.appendChild(document.createTextNode(chainState ? bestHeight - chainState.height : ""));
         tr.appendChild(td);
       }
 
@@ -136,7 +159,7 @@ class App {
       console.log('Socket is closed. Reconnecting soon...');
       setTimeout(function() {
         app.connect();
-      }, 1000 + Math.random() * 1000);
+      }, 10000 + Math.random() * 10000);
     });
   }
 }

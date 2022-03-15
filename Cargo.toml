@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 axum = { version = "0.4.8", features = ["ws", "headers"] }
-hyper = { verion = "*" }
+hyper = { version = "*" }
 tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -15,7 +15,7 @@ headers = "0.3"
 futures = { version = "*" }
 clap = { version = "3.1.6", features = [ "derive" ] }
 serde = { version = " 1.0.106", features = [ "derive" ] }
-serde_json = {}
+serde_json = { version = "*" }
 time = { version = "0.3.7", features = [ "serde" ] }
 anyhow = "1.0.56"
 reqwest = { version = "0.11.10", features = [ "json" ]}

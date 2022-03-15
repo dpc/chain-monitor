@@ -256,7 +256,7 @@ async fn main() {
         async move {
             loop {
                 source::update_all(&*app_state as &dyn ChainStateRecorder).await;
-                tokio::time::sleep(Duration::from_secs(30)).await;
+                tokio::time::sleep(Duration::from_secs(10)).await;
             }
         }
     });

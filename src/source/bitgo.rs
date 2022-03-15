@@ -59,4 +59,7 @@ pub(crate) async fn update(recorder: &dyn ChainStateRecorder) {
 
     update_chain(recorder, super::CHAIN_ETH.into(), "bitgo.com", "eth").await;
     update_chain(recorder, super::CHAIN_TETH.into(), "test.bitgo.com", "teth").await;
+
+    update_chain(recorder, super::CHAIN_BCH.into(), "bitgo.com", "bch").await;
+    update_chain(recorder, super::CHAIN_TBCH.into(), "test.bitgo.com", "tbch").await;
 }
