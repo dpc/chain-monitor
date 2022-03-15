@@ -96,7 +96,7 @@ class ChainsState {
       for (var sourceIdx = 0; sourceIdx < this.sources.length; sourceIdx++){
         const td = document.createElement('td');
         const chainState = this.states[this.getIdx(sourceIdx, chainIdx)];
-        td.appendChild(document.createTextNode(chainState ? bestHeight - chainState.height : ""));
+        td.appendChild(document.createTextNode(chainState ? chainState.height - bestHeight  : ""));
         tr.appendChild(td);
       }
 

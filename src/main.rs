@@ -7,7 +7,7 @@ use axum::{
         Extension, TypedHeader,
     },
     http::StatusCode,
-    response::IntoResponse,
+    response::{Html, IntoResponse},
     routing::{get, get_service, IntoMakeService},
     Router,
 };
@@ -102,17 +102,6 @@ impl AppState {
             chain_states: Mutex::new(HashMap::new()),
             tx,
         }
-
-        /*
-        WSMessage::Update(ChainStateUpdate {
-                                source: "x".into(),
-                                chain: "c1".into(),
-                                state: ChainState {
-                                    ts: time::OffsetDateTime::now_utc().unix_timestamp(),
-                                    hash: "234".into(),
-                                    height: 3,
-                                },
-                            }         */
     }
 }
 #[async_trait]
@@ -152,7 +141,13 @@ fn setup_server(
 ) -> axum::Server<hyper::server::conn::AddrIncoming, IntoMakeService<Router>> {
     // build our application with some routes
     let app = Router::new()
-        .fallback(
+        .route("/", get(index_html_handler))
+        .route("/favicon.ico", get(favicon_ico_handler))
+        .route("/script.js", get(script_js_handler));
+
+    // enable dynamic files if the feature is enabled
+    let app = if cfg!(dynamic) {
+        app.fallback(
             get_service(ServeDir::new("assets").append_index_html_on_directories(true))
                 .handle_error(|error: std::io::Error| async move {
                     (
@@ -161,6 +156,11 @@ fn setup_server(
                     )
                 }),
         )
+    } else {
+        app
+    };
+
+    let app = app
         // routes are matched from bottom to top, so we have to put `nest` at the
         // top since it matches all routes
         .route("/ws", get(ws_handler))
@@ -171,13 +171,23 @@ fn setup_server(
         )
         .layer(Extension(app_state));
 
-    // run it with hyper
     let addr = SocketAddr::from(([0, 0, 0, 0], opts.listen_port));
     let server = axum::Server::bind(&addr).serve(app.into_make_service());
     tracing::info!("listening on {}", server.local_addr());
     server
 }
 
+async fn index_html_handler() -> Html<&'static str> {
+    Html(include_str!("../assets/index.html"))
+}
+
+async fn script_js_handler() -> &'static str {
+    include_str!("../assets/script.js")
+}
+
+async fn favicon_ico_handler() -> &'static [u8] {
+    include_bytes!("../assets/favicon.ico")
+}
 async fn ws_handler(
     ws: WebSocketUpgrade,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
@@ -233,6 +243,27 @@ async fn handle_socket_try(socket: WebSocket, app_state: SharedAppState) -> Resu
     Ok(())
 }
 
+fn start_browser(url: String) {
+    fn spawn(url: &str) -> Result<()> {
+        let open_cmd = if cfg!(target_os = "windows") {
+            "start"
+        } else if cfg!(target_os = "macos") {
+            "open"
+        } else if cfg!(target_os = "linux") {
+            "xdg-open"
+        } else {
+            eprintln!("Unsupported platform. Please submit a PR!");
+            return Ok(());
+        };
+        std::process::Command::new(open_cmd).arg(url).spawn()?;
+        Ok(())
+    }
+
+    std::thread::spawn(move || {
+        eprintln!("Opening browser pointing at {url}");
+        let _ = spawn(&url);
+    });
+}
 #[tokio::main]
 async fn main() {
     let opts = opts::from_args();
@@ -250,16 +281,21 @@ async fn main() {
     source::init_all(&mut app_state);
 
     let app_state = Arc::new(app_state);
+    let server = setup_server(&opts, app_state.clone());
+    let local_addr = server.local_addr();
 
     tokio::spawn({
-        let app_state = app_state.clone();
         async move {
-            loop {
-                source::update_all(&*app_state as &dyn ChainStateRecorder).await;
-                tokio::time::sleep(Duration::from_secs(10)).await;
-            }
+            server.await.unwrap();
         }
     });
 
-    setup_server(&opts, app_state.clone()).await.unwrap();
+    if !opts.daemon {
+        start_browser(format!("http://{}", local_addr.to_string()));
+    }
+
+    loop {
+        source::update_all(&*app_state as &dyn ChainStateRecorder).await;
+        tokio::time::sleep(Duration::from_secs(10)).await;
+    }
 }

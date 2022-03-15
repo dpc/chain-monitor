@@ -9,6 +9,9 @@ pub struct Opts {
     /// Port to listen on
     #[clap(long = "listen", short = 'l', default_value = "0")]
     pub listen_port: u16,
+
+    #[clap(long = "daemon", short = 'd')]
+    pub daemon: bool,
 }
 
 pub fn from_args() -> Opts {

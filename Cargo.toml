@@ -4,6 +4,13 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = []
+
+# enable to serve assets (html, js, etc) dynamically from the `./assets/` directory
+# without a need to recompile
+dynamic = []
+
 [dependencies]
 axum = { version = "0.4.8", features = ["ws", "headers"] }
 hyper = { version = "*" }
