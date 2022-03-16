@@ -1,0 +1,65 @@
+/* CSS Mini Reset */
+
+html, body, div, form, fieldset, legend, label
+{
+ margin: 0;
+ padding: 0; 
+}
+
+table
+{
+ border-collapse: collapse;
+ border-spacing: 0;
+}
+
+th, td
+{
+ text-align: left;
+ vertical-align: top;
+}
+
+h1, h2, h3, h4, h5, h6, th, td, caption { font-weight:normal; }
+
+img { border: 0; }
+
+
+/*** OWN ***/
+
+body {
+  font-family: Verdana, sans-serif;
+}
+
+table {
+  border: 3pt;
+}
+
+/* default padding */
+table td, table th {
+  padding: 2pt 8pt;
+}
+
+table th {
+  min-width: 60pt;
+}
+
+table td {
+  text-align: right;
+}
+
+/* headers */
+table th, table td:first-child {
+  text-align: center;
+  font-weight: bold;
+}
+
+table td.at-chainhead {
+  background-color: #80ff80a0;
+}
+
+table td.not-at-chainhead {
+  background-color: #ff8080a0;
+}
+
+table tr:nth-child(even) {
+  background: #ddd;
+}

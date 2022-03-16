@@ -6,7 +6,7 @@ use axum::{
         Extension, TypedHeader,
     },
     http::StatusCode,
-    response::{Html, IntoResponse},
+    response::{Headers, Html, IntoResponse},
     routing::{get, get_service, IntoMakeService},
     Router,
 };
@@ -150,11 +150,7 @@ fn setup_server(
     opts: &Opts,
     app_state: SharedAppState,
 ) -> axum::Server<hyper::server::conn::AddrIncoming, IntoMakeService<Router>> {
-    // build our application with some routes
-    let app = Router::new()
-        .route("/", get(index_html_handler))
-        .route("/favicon.ico", get(favicon_ico_handler))
-        .route("/script.js", get(script_js_handler));
+    let app = Router::new();
 
     // enable dynamic files if the feature is enabled
     let app = if cfg!(dynamic) {
@@ -168,7 +164,10 @@ fn setup_server(
                 }),
         )
     } else {
-        app
+        app.route("/", get(index_html_handler))
+            .route("/favicon.ico", get(favicon_ico_handler))
+            .route("/style.css", get(style_css_handler))
+            .route("/script.js", get(script_js_handler))
     };
 
     let app = app
@@ -194,6 +193,13 @@ async fn index_html_handler() -> Html<&'static str> {
 
 async fn script_js_handler() -> &'static str {
     include_str!("../assets/script.js")
+}
+
+async fn style_css_handler() -> impl IntoResponse {
+    (
+        Headers([("Content-Type", "text/css")]),
+        include_str!("../assets/style.css"),
+    )
 }
 
 async fn favicon_ico_handler() -> &'static [u8] {

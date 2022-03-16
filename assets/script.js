@@ -54,7 +54,7 @@ class ChainsState {
 
       {
         const th = document.createElement('th');
-        th.appendChild(document.createTextNode('Coins \\ Sources'));
+        th.appendChild(document.createTextNode(''));
         headerTr.appendChild(th);
       }
 
@@ -96,7 +96,18 @@ class ChainsState {
       for (var sourceIdx = 0; sourceIdx < this.sources.length; sourceIdx++){
         const td = document.createElement('td');
         const chainState = this.states[this.getIdx(sourceIdx, chainIdx)];
-        td.appendChild(document.createTextNode(chainState ? chainState.height - bestHeight  : ""));
+        if (chainState) {
+          const diff = chainState.height - bestHeight;
+          if (diff >= -1) {
+            td.classList.add('at-chainhead');
+          } else {
+            td.classList.add('not-at-chainhead');
+          }
+          td.appendChild(document.createTextNode(diff));
+        } else {
+          td.appendChild(document.createTextNode(""));
+            td.classList.add('missing-state');
+        }
         tr.appendChild(td);
       }
 
