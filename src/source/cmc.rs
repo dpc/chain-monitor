@@ -75,10 +75,10 @@ impl CoinMarketCap {
 
     fn coin_symbol_for_chain(chain: ChainId) -> &'static str {
         match chain {
-            Btc => "BTC",
-            Bnb => "BNB",
-            Eth => "ETH",
-            Ltc => "LTC",
+            Bitcoin => "BTC",
+            BinanceCoin => "BNB",
+            Ethereum => "ETH",
+            Litecoin => "LTC",
 
             _ => unreachable!(),
         }
@@ -88,7 +88,7 @@ impl CoinMarketCap {
 #[async_trait]
 impl super::StaticSource for CoinMarketCap {
     const ID: SourceId = SourceId::CMC;
-    const SUPPORTED_CHAINS: &'static [ChainId] = &[Btc, Eth, Ltc, Bnb];
+    const SUPPORTED_CHAINS: &'static [ChainId] = &[Bitcoin, Ethereum, Litecoin, BinanceCoin];
 
     async fn get_updates(&self) -> Vec<ChainStateUpdate> {
         let mut ret = vec![];

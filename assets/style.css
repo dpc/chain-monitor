@@ -65,7 +65,7 @@ table tr:nth-child(even) {
 }
 
 #conn-lost {
-  background-color: #ff8080a0;
+  background-color: #ff8080;
   position: fixed;
   padding: 10pt 15pt;
   width: 200pt;

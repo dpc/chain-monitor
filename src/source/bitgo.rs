@@ -67,59 +67,59 @@ impl BitGo {
 
     fn host_for_chain(chain: ChainId) -> &'static str {
         match chain {
-            Btc | Bch | Ltc | Eth | Dash | Dot | Btg | Bsv | Sol | Xrp | Xlm | Zec | Eos
-            | Avaxc | Algo | Celo | Cspr | Rbtc | Stx => "bitgo.com",
-            TBtc | TBch | TLtc | TEthGoerli | TDash | TBsv | TSol | TXrp | TXlm | TEos | TZec
-            | TAlgo | TCelo | TCspr | TRbtc | TStx => "test.bitgo.com",
-            Doge | Ada | Xmr | Kusama | ECash | Mixin | Groestlcoin | Bnb => unreachable!(),
+            Bitcoin | BitcoinCash | Litecoin | Ethereum | Dash | Polkadot | BitcoinGold | BitcoinSV | Solana | Ripple | Stellar | ZCash | Eos
+            | Avalanche | Algorand | Celo | Casper | RSK | Stacks => "bitgo.com",
+            BitcoinTestnet | BitcoinCashTestnet | LitecoinTestnet | EthereumGoerliTestnet | DashTestnet | BitcoinSVTestnet | SolanaTestnet | RippleTestnet | StellarTestnet | EosTestnet | ZCashTestnet
+            | AlgorandTestnet | CeloTestnet | CasperTestnet | RSKTestnet | StacksTestnet => "test.bitgo.com",
+            Doge | Cardano | Monero | Kusama | ECash | Mixin | GroestlCoin | BinanceCoin => unreachable!(),
         }
     }
 
     fn coin_symbol_for_chain(chain: ChainId) -> &'static str {
         match chain {
-            Bch => "bch",
-            Btc => "btc",
-            Btg => "btg",
+            BitcoinCash => "bch",
+            Bitcoin => "btc",
+            BitcoinGold => "btg",
             Dash => "dash",
-            Eth => "eth",
-            Ltc => "ltc",
-            TBch => "tbch",
-            TBtc => "tbtc",
-            TEthGoerli => "teth",
-            TLtc => "tltc",
-            TDash => "tdash",
-            Bsv => "bsv",
-            TBsv => "tbsv",
+            Ethereum => "eth",
+            Litecoin => "ltc",
+            BitcoinCashTestnet => "tbch",
+            BitcoinTestnet => "tbtc",
+            EthereumGoerliTestnet => "teth",
+            LitecoinTestnet => "tltc",
+            DashTestnet => "tdash",
+            BitcoinSV => "bsv",
+            BitcoinSVTestnet => "tbsv",
             Doge => unreachable!(),
-            Dot => unreachable!(),
-            Sol => "sol",
-            TSol => "tsol",
-            Ada => unreachable!(),
-            Xrp => "xrp",
-            TXrp => "txrp",
-            Xlm => "xlm",
-            TXlm => "txlm",
-            Zec => "zec",
-            TZec => "tzec",
+            Polkadot => unreachable!(),
+            Solana => "sol",
+            SolanaTestnet => "tsol",
+            Cardano => unreachable!(),
+            Ripple => "xrp",
+            RippleTestnet => "txrp",
+            Stellar => "xlm",
+            StellarTestnet => "txlm",
+            ZCash => "zec",
+            ZCashTestnet => "tzec",
             Eos => "eos",
-            TEos => "teos",
-            Avaxc => "avaxc",
-            Xmr => unreachable!(),
+            EosTestnet => "teos",
+            Avalanche => "avaxc",
+            Monero => unreachable!(),
             Kusama => unreachable!(),
             ECash => unreachable!(),
             Mixin => unreachable!(),
-            Groestlcoin => unreachable!(),
-            Algo => "algo",
+            GroestlCoin => unreachable!(),
+            Algorand => "algo",
             Celo => "celo",
-            Cspr => "cspr",
-            Bnb => unreachable!(),
-            TAlgo => "talgo",
-            TCelo => "tcelo",
-            TCspr => "tcspr",
-            Rbtc => "rbtc",
-            Stx => "stx",
-            TRbtc => "trbtc",
-            TStx => "tstx",
+            Casper => "cspr",
+            BinanceCoin => unreachable!(),
+            AlgorandTestnet => "talgo",
+            CeloTestnet => "tcelo",
+            CasperTestnet => "tcspr",
+            RSK => "rbtc",
+            Stacks => "stx",
+            RSKTestnet => "trbtc",
+            StacksTestnet => "tstx",
         }
     }
 }
@@ -128,9 +128,9 @@ impl BitGo {
 impl super::StaticSource for BitGo {
     const ID: SourceId = SourceId::BitGo;
     const SUPPORTED_CHAINS: &'static [ChainId] = &[
-        Btc, Ltc, Bch, Dash, Zec, Btg, Bsv, Eth, Xrp, Xlm, Eos, Avaxc, Algo, Celo, Cspr, Rbtc, Stx,
-        TBtc, TLtc, TBch, TDash, TZec, TBsv, TEthGoerli, TXrp, TXlm, TEos, TAlgo, TCelo, TCspr,
-        TRbtc, TStx,
+        Bitcoin, Litecoin, BitcoinCash, Dash, ZCash, BitcoinGold, BitcoinSV, Ethereum, Ripple, Stellar, Eos, Avalanche, Algorand, Celo, Casper, RSK, Stacks,
+        BitcoinTestnet, LitecoinTestnet, BitcoinCashTestnet, DashTestnet, ZCashTestnet, BitcoinSVTestnet, EthereumGoerliTestnet, RippleTestnet, StellarTestnet, EosTestnet, AlgorandTestnet, CeloTestnet, CasperTestnet,
+        RSKTestnet, StacksTestnet,
     ];
 
     async fn get_updates(&self) -> Vec<ChainStateUpdate> {
