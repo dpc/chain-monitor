@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{
     ChainId::{self, *},
     SourceId::{self, *},
@@ -23,28 +25,22 @@ struct HomepageEnData {
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 struct HomepageEnStats {
-    data: HomepageEnDataInner,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-struct HomepageEnDataInner {
-    bitcoin: HomepageEnCoin,
-    bitcoin_cash: HomepageEnCoin,
-    ethereum: HomepageEnCoin,
+    data: HashMap<String, HomepageEnCoin>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 struct HomepageEnCoin {
-    data: HomepageEnCoinData,
+    data: Option<HomepageEnCoinData>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 struct HomepageEnCoinData {
-    best_block_height: u64,
-    best_block_hash: String,
+    #[serde(alias = "best_ledger_height", alias = "best_snapshot_height")]
+    best_block_height: Option<u64>,
+    #[serde(alias = "best_ledger_hash", alias = "best_snapshot_hash")]
+    best_block_hash: Option<String>,
 }
 
 async fn get_homepage_en(client: &reqwest::Client) -> Result<HomepageEnBody> {
@@ -68,6 +64,32 @@ impl Blockchair {
                 .user_agent("curl/7.79.1")
                 .build()?,
         })
+    }
+
+    fn coin_symbol_for_chain(chain: ChainId) -> &'static str {
+        match chain {
+            Btc => "bitcoin",
+            Bch => "bitcoin-cash",
+            Eth => "ethereum",
+            Ltc => "litecoin",
+            Bsv => "bitcoin-sv",
+            Doge => "dogecoin",
+            Dash => "dash",
+            Xrp => "ripple",
+            Groestlcoin => "groestlcoin",
+            Xlm => "stellar",
+            Xmr => "monero",
+            Cardano => "cardano",
+            Zec => "zcash",
+            Mixin => "mixin",
+            Eos => "eos",
+            ECash => "ecash",
+            Dot => "polkadot",
+            Sol => "solana",
+            Kusama => "kusama",
+
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -100,35 +122,46 @@ impl super::StaticSource for Blockchair {
         let ts = get_now_ts();
         match get_homepage_en(&self.client).await {
             Ok(state) => {
-                vec![
-                    ChainStateUpdate {
-                        source: Blockchair,
-                        chain: Btc,
-                        state: ChainState {
-                            ts,
-                            hash: state.data.stats.data.bitcoin.data.best_block_hash,
-                            height: state.data.stats.data.bitcoin.data.best_block_height,
-                        },
-                    },
-                    ChainStateUpdate {
-                        source: Blockchair,
-                        chain: Bch,
-                        state: ChainState {
-                            ts,
-                            hash: state.data.stats.data.bitcoin_cash.data.best_block_hash,
-                            height: state.data.stats.data.bitcoin_cash.data.best_block_height,
-                        },
-                    },
-                    ChainStateUpdate {
-                        source: Blockchair,
-                        chain: Eth,
-                        state: ChainState {
-                            ts,
-                            hash: state.data.stats.data.ethereum.data.best_block_hash,
-                            height: state.data.stats.data.ethereum.data.best_block_height,
-                        },
-                    },
-                ]
+                let data = state.data.stats.data;
+
+                Self::SUPPORTED_CHAINS
+                    .iter()
+                    .filter_map(|&chain| {
+                        let symbol = Self::coin_symbol_for_chain(chain);
+
+                        if let Some(data) = data.get(symbol) {
+                            if let Some(data) = data.data.as_ref() {
+                                if let Some(height) = data.best_block_height {
+                                    Some(ChainStateUpdate {
+                                        source: Blockchair,
+                                        chain: chain,
+                                        state: ChainState {
+                                            ts,
+                                            hash: data
+                                                .best_block_hash
+                                                .clone()
+                                                .unwrap_or_else(|| height.to_string()),
+                                            height,
+                                        },
+                                    })
+                                } else {
+                                    tracing::warn!(
+                                        "Missing chain data for blockchair coin data:: {symbol}"
+                                    );
+                                    None
+                                }
+                            } else {
+                                tracing::warn!(
+                                    "Malformed data for blockchair coin data:: {symbol}"
+                                );
+                                None
+                            }
+                        } else {
+                            tracing::warn!("Couldn't find blockchair coin data:: {symbol}");
+                            None
+                        }
+                    })
+                    .collect()
             }
             Err(e) => {
                 tracing::warn!("Couldn't update Blockchair: {e}");

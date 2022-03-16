@@ -91,15 +91,6 @@ pub enum ChainId {
     TEos,
 }
 
-// pub const CHAIN_BTC: &'static str = "Mainnet Bitcoin";
-// pub const CHAIN_TBTC: &'static str = "Testnet Bitcoin";
-// pub const CHAIN_ETH: &'static str = "Mainnet Ethereum";
-// pub const CHAIN_TETH: &'static str = "Testnet Ethereum";
-// pub const CHAIN_BCH: &'static str = "Mainnet Bitcoin Cash";
-// pub const CHAIN_TBCH: &'static str = "Testnet Bitcoin Cash";
-// pub const CHAIN_LTC: &'static str = "Mainnet Litecoin";
-// pub const _CHAIN_TLTC: &'static str = "Testnet Litecoin";
-
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
     Ok(vec![
         Box::new(bitgo::BitGo::new()?),
