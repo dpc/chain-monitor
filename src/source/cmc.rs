@@ -20,10 +20,10 @@ struct BlocksDataItem {
     height: u64,
 }
 
-pub(crate) async fn get_chain_state(chain_api_symbol: &str) -> Result<ChainState> {
-    let client = reqwest::Client::builder()
-        .user_agent("curl/7.79.1")
-        .build()?;
+pub(crate) async fn get_chain_state(
+    client: &reqwest::Client,
+    chain_api_symbol: &str,
+) -> Result<ChainState> {
     let resp = client
         .get(format!(
             "https://blockchain.coinmarketcap.com/api/blocks?symbol={chain_api_symbol}&start=1&limit=1&quote=true"
@@ -45,8 +45,13 @@ pub(crate) async fn get_chain_state(chain_api_symbol: &str) -> Result<ChainState
     }
 }
 
-async fn update_chain(recorder: &dyn ChainStateRecorder, chain: ChainName, chain_api_symbol: &str) {
-    match get_chain_state(chain_api_symbol).await {
+async fn update_chain(
+    client: &reqwest::Client,
+    recorder: &dyn ChainStateRecorder,
+    chain: ChainName,
+    chain_api_symbol: &str,
+) {
+    match get_chain_state(client, chain_api_symbol).await {
         Ok(state) => {
             recorder
                 .update(ChainStateUpdate {
@@ -62,8 +67,8 @@ async fn update_chain(recorder: &dyn ChainStateRecorder, chain: ChainName, chain
     }
 }
 
-pub(crate) async fn update(recorder: &dyn ChainStateRecorder) {
-    update_chain(recorder, super::CHAIN_BTC.into(), "BTC").await;
-    update_chain(recorder, super::CHAIN_ETH.into(), "ETH").await;
-    update_chain(recorder, super::CHAIN_LTC.into(), "LTC").await;
+pub(crate) async fn update(client: &reqwest::Client, recorder: &dyn ChainStateRecorder) {
+    update_chain(client, recorder, super::CHAIN_BTC.into(), "BTC").await;
+    update_chain(client, recorder, super::CHAIN_ETH.into(), "ETH").await;
+    update_chain(client, recorder, super::CHAIN_LTC.into(), "LTC").await;
 }

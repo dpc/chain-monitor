@@ -1,7 +1,6 @@
 //! A simple web-app monitoring chain heights from various sources
 use anyhow::Result;
 use axum::{
-    async_trait,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         Extension, TypedHeader,
@@ -13,6 +12,7 @@ use axum::{
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Serialize;
+use source::{ChainId, Source, SourceId};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::{broadcast, Mutex};
 use tower_http::{
@@ -26,8 +26,8 @@ mod source;
 
 use opts::Opts;
 
-type SourceName = String;
-type ChainName = String;
+type SourceName = &'static str;
+type ChainName = &'static str;
 
 type ChainHeight = u64;
 type BlockHash = String;
@@ -37,24 +37,26 @@ pub fn get_now_ts() -> u64 {
 }
 
 #[derive(Serialize, Clone, Debug)]
-struct ChainState {
+pub struct ChainState {
     ts: u64,
     hash: BlockHash,
     height: ChainHeight,
 }
 
 #[derive(Serialize, Clone, Debug)]
-struct ChainStateUpdate {
-    source: SourceName,
-    chain: ChainName,
+pub struct ChainStateUpdate {
+    source: SourceId,
+    chain: ChainId,
     state: ChainState,
 }
 
 // Our shared state
 pub struct AppState {
-    all_sources: Vec<SourceName>,
-    all_chains: Vec<ChainName>,
-    chain_states: Mutex<HashMap<(SourceName, ChainName), ChainState>>,
+    all_sources_names: Vec<SourceName>,
+    all_sources: Vec<SourceId>,
+    all_chains_names: Vec<ChainName>,
+    all_chains: Vec<ChainId>,
+    chain_states: Mutex<HashMap<(SourceId, ChainId), ChainState>>,
     tx: broadcast::Sender<ChainStateUpdate>,
 }
 
@@ -76,41 +78,50 @@ impl AppState {
         self.tx.subscribe()
     }
 
-    pub fn add_source(&mut self, source: impl Into<SourceName>) {
-        let source = source.into();
-
+    pub fn add_source(&mut self, source: SourceId) {
         match self.all_sources.binary_search(&source) {
             Ok(_pos) => {}
-            Err(pos) => self.all_sources.insert(pos, source),
+            Err(pos) => {
+                self.all_sources.insert(pos, source);
+                self.all_sources_names.insert(pos, source.into());
+            }
+        }
+    }
+    fn add_sources(&mut self, sources: std::collections::HashSet<SourceId>) {
+        for source in sources {
+            self.add_source(source);
         }
     }
 
-    pub fn add_chain(&mut self, chain: impl Into<SourceName>) {
+    pub fn add_chain(&mut self, chain: ChainId) {
         let chain = chain.into();
 
         match self.all_chains.binary_search(&chain) {
             Ok(_pos) => {}
-            Err(pos) => self.all_chains.insert(pos, chain),
+            Err(pos) => {
+                self.all_chains.insert(pos, chain);
+                self.all_chains_names.insert(pos, chain.into());
+            }
+        }
+    }
+    fn add_chains(&mut self, chains: std::collections::HashSet<ChainId>) {
+        for chain in chains {
+            self.add_chain(chain);
         }
     }
 
     fn new() -> AppState {
         let (tx, _rx) = tokio::sync::broadcast::channel(1000);
         AppState {
+            all_chains_names: Default::default(),
+            all_sources_names: Default::default(),
             all_chains: Default::default(),
             all_sources: Default::default(),
             chain_states: Mutex::new(HashMap::new()),
             tx,
         }
     }
-}
-#[async_trait]
-trait ChainStateRecorder: Sync {
-    async fn update(&self, update: ChainStateUpdate);
-}
 
-#[async_trait]
-impl ChainStateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
         {
             let update = update.clone();
@@ -129,8 +140,8 @@ type SharedAppState = Arc<AppState>;
 #[serde(tag = "type", rename_all = "kebab-case")]
 enum WSMessage {
     Init {
-        sources: Vec<String>,
-        chains: Vec<String>,
+        sources: Vec<&'static str>,
+        chains: Vec<&'static str>,
     },
     Update(ChainStateUpdate),
 }
@@ -217,8 +228,8 @@ async fn handle_socket_try(socket: WebSocket, app_state: SharedAppState) -> Resu
     // send all sources & chains info
     sender
         .send(Message::Text(serde_json::to_string(&WSMessage::Init {
-            sources: app_state.all_sources.clone(),
-            chains: app_state.all_chains.clone(),
+            sources: app_state.all_sources_names.clone(),
+            chains: app_state.all_chains_names.clone(),
         })?))
         .await?;
 
@@ -265,7 +276,7 @@ fn start_browser(url: String) {
     });
 }
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let opts = opts::from_args();
 
     tracing_subscriber::registry()
@@ -278,7 +289,9 @@ async fn main() {
 
     let mut app_state = AppState::new();
 
-    source::init_all(&mut app_state);
+    let source = source::get_source()?;
+    app_state.add_chains(source.get_supported_chains());
+    app_state.add_sources(source.get_supported_sources());
 
     let app_state = Arc::new(app_state);
     let server = setup_server(&opts, app_state.clone());
@@ -295,7 +308,9 @@ async fn main() {
     }
 
     loop {
-        source::update_all(&*app_state as &dyn ChainStateRecorder).await;
+        for update in source.get_updates().await {
+            app_state.update(update).await;
+        }
         tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
