@@ -68,15 +68,14 @@ impl BitGo {
     fn host_for_chain(chain: ChainId) -> &'static str {
         match chain {
             Btc | Bch | Ltc | Eth | Dash | Dot | Btg | Bsv | Sol | Xrp | Xlm | Zec | Eos
-            | Avaxc => "bitgo.com",
-            TBtc | TBch | TLtc | TEthGoerli | TDash | TBsv | TSol | TXrp | TXlm | TEos | TZec => {
-                "test.bitgo.com"
-            }
-            Doge | Cardano | Xmr | Kusama | ECash | Mixin | Groestlcoin => unreachable!(),
+            | Avaxc | Algo | Celo | Cspr | Rbtc | Stx => "bitgo.com",
+            TBtc | TBch | TLtc | TEthGoerli | TDash | TBsv | TSol | TXrp | TXlm | TEos | TZec
+            | TAlgo | TCelo | TCspr | TRbtc | TStx => "test.bitgo.com",
+            Doge | Ada | Xmr | Kusama | ECash | Mixin | Groestlcoin | Bnb => unreachable!(),
         }
     }
 
-    fn coin_symbol_for_cain(chain: ChainId) -> &'static str {
+    fn coin_symbol_for_chain(chain: ChainId) -> &'static str {
         match chain {
             Bch => "bch",
             Btc => "btc",
@@ -95,7 +94,7 @@ impl BitGo {
             Dot => unreachable!(),
             Sol => "sol",
             TSol => "tsol",
-            Cardano => unreachable!(),
+            Ada => unreachable!(),
             Xrp => "xrp",
             TXrp => "txrp",
             Xlm => "xlm",
@@ -110,6 +109,17 @@ impl BitGo {
             ECash => unreachable!(),
             Mixin => unreachable!(),
             Groestlcoin => unreachable!(),
+            Algo => "algo",
+            Celo => "celo",
+            Cspr => "cspr",
+            Bnb => unreachable!(),
+            TAlgo => "talgo",
+            TCelo => "tcelo",
+            TCspr => "tcspr",
+            Rbtc => "rbtc",
+            Stx => "stx",
+            TRbtc => "trbtc",
+            TStx => "tstx",
         }
     }
 }
@@ -118,8 +128,9 @@ impl BitGo {
 impl super::StaticSource for BitGo {
     const ID: SourceId = SourceId::BitGo;
     const SUPPORTED_CHAINS: &'static [ChainId] = &[
-        Btc, Ltc, Bch, Dash, Zec, Btg, Bsv, Eth, Xrp, Xlm, Eos, Avaxc, TBtc, TLtc, TBch, TDash,
-        TZec, TBsv, TEthGoerli, TXrp, TXlm, TEos,
+        Btc, Ltc, Bch, Dash, Zec, Btg, Bsv, Eth, Xrp, Xlm, Eos, Avaxc, Algo, Celo, Cspr, Rbtc, Stx,
+        TBtc, TLtc, TBch, TDash, TZec, TBsv, TEthGoerli, TXrp, TXlm, TEos, TAlgo, TCelo, TCspr,
+        TRbtc, TStx,
     ];
 
     async fn get_updates(&self) -> Vec<ChainStateUpdate> {
@@ -129,7 +140,7 @@ impl super::StaticSource for BitGo {
                 &self.client,
                 chain_id,
                 Self::host_for_chain(chain_id),
-                Self::coin_symbol_for_cain(chain_id),
+                Self::coin_symbol_for_chain(chain_id),
             )
             .await
             {

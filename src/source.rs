@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use strum::IntoStaticStr;
 mod bitgo;
 mod blockchair;
-// mod cmc;
+mod cmc;
 
 #[async_trait]
 pub trait Source: Sync {
@@ -50,12 +50,15 @@ where
 pub enum SourceId {
     BitGo,
     Blockchair,
-    CoinMarketCap,
+    CMC,
 }
 
 #[derive(Debug, Clone, Copy, IntoStaticStr, Hash, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChainId {
+    Algo,
     Btc,
+    Celo,
+    Cspr,
     Ltc,
     Bch,
     Btg,
@@ -64,7 +67,7 @@ pub enum ChainId {
     Doge,
     Dot,
     Sol,
-    Cardano,
+    Ada,
     Xrp,
     Xlm,
     Zec,
@@ -72,29 +75,38 @@ pub enum ChainId {
     Avaxc,
     Xmr,
     Eth,
-    TEthGoerli,
+    Bnb,
+    Rbtc,
+    Stx,
 
     Kusama,
     ECash,
     Mixin,
     Groestlcoin,
 
+    TAlgo,
     TBtc,
+    TCelo,
+    TCspr,
     TLtc,
     TBch,
     TBsv,
     TDash,
+    TEthGoerli,
     TSol,
     TXrp,
     TXlm,
     TZec,
     TEos,
+    TRbtc,
+    TStx,
 }
 
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
     Ok(vec![
         Box::new(bitgo::BitGo::new()?),
         Box::new(blockchair::Blockchair::new()?),
+        Box::new(cmc::CoinMarketCap::new()?),
     ])
 }
 

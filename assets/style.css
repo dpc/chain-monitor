@@ -63,3 +63,14 @@ table td.not-at-chainhead {
 table tr:nth-child(even) {
   background: #ddd;
 }
+
+#conn-lost {
+  background-color: #ff8080a0;
+  position: fixed;
+  padding: 10pt 15pt;
+  width: 200pt;
+  margin: 5% auto;
+  left: 0;
+  right: 0;
+  text-align: center;
+}

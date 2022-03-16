@@ -187,12 +187,18 @@ fn setup_server(
     server
 }
 
-async fn index_html_handler() -> Html<&'static str> {
-    Html(include_str!("../assets/index.html"))
+async fn index_html_handler() -> impl IntoResponse {
+    (
+        Headers([("Content-Type", "text/html")]),
+        Html(include_str!("../assets/index.html")),
+    )
 }
 
-async fn script_js_handler() -> &'static str {
-    include_str!("../assets/script.js")
+async fn script_js_handler() -> impl IntoResponse {
+    (
+        Headers([("Content-Type", "application/javascript")]),
+        include_str!("../assets/script.js"),
+    )
 }
 
 async fn style_css_handler() -> impl IntoResponse {
@@ -317,6 +323,6 @@ async fn main() -> Result<()> {
         for update in source.get_updates().await {
             app_state.update(update).await;
         }
-        tokio::time::sleep(Duration::from_secs(10)).await;
+        tokio::time::sleep(Duration::from_secs(30)).await;
     }
 }

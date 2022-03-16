@@ -1,13 +1,9 @@
-use crate::{get_now_ts, AppState, ChainName, ChainState, ChainStateRecorder, ChainStateUpdate};
+use crate::{get_now_ts, ChainState, ChainStateUpdate};
 use anyhow::{bail, Result};
+use axum::async_trait;
 use serde::Deserialize;
 
-pub fn init(app_state: &mut AppState) {
-    app_state.add_source(super::SOURCE_CMC);
-    app_state.add_chain(super::CHAIN_BTC);
-    app_state.add_chain(super::CHAIN_ETH);
-    app_state.add_chain(super::CHAIN_LTC);
-}
+use super::{ChainId, ChainId::*, SourceId};
 
 #[derive(Deserialize)]
 struct BlocksBody {
@@ -45,30 +41,69 @@ pub(crate) async fn get_chain_state(
     }
 }
 
-async fn update_chain(
+async fn get_chain_update(
     client: &reqwest::Client,
-    recorder: &dyn ChainStateRecorder,
-    chain: ChainName,
+    chain: ChainId,
     chain_api_symbol: &str,
-) {
+) -> Option<ChainStateUpdate> {
     match get_chain_state(client, chain_api_symbol).await {
-        Ok(state) => {
-            recorder
-                .update(ChainStateUpdate {
-                    source: super::SOURCE_CMC.into(),
-                    chain: chain.into(),
-                    state,
-                })
-                .await
-        }
+        Ok(state) => Some(ChainStateUpdate {
+            source: SourceId::CMC,
+            chain: chain.into(),
+            state,
+        }),
         Err(e) => {
-            tracing::warn!("Couldn't update CoinMarketCap {chain}: {e}");
+            let chain_name: &str = chain.into();
+            tracing::warn!("Couldn't update CoinMarketCap {chain_name}: {e}");
+            None
         }
     }
 }
 
-pub(crate) async fn update(client: &reqwest::Client, recorder: &dyn ChainStateRecorder) {
-    update_chain(client, recorder, super::CHAIN_BTC.into(), "BTC").await;
-    update_chain(client, recorder, super::CHAIN_ETH.into(), "ETH").await;
-    update_chain(client, recorder, super::CHAIN_LTC.into(), "LTC").await;
+pub struct CoinMarketCap {
+    client: reqwest::Client,
+}
+
+impl CoinMarketCap {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            client: reqwest::Client::builder()
+                .user_agent("curl/7.79.1")
+                .build()?,
+        })
+    }
+
+    fn coin_symbol_for_chain(chain: ChainId) -> &'static str {
+        match chain {
+            Btc => "BTC",
+            Bnb => "BNB",
+            Eth => "ETH",
+            Ltc => "LTC",
+
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[async_trait]
+impl super::StaticSource for CoinMarketCap {
+    const ID: SourceId = SourceId::CMC;
+    const SUPPORTED_CHAINS: &'static [ChainId] = &[Btc, Eth, Ltc, Bnb];
+
+    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
+        let mut ret = vec![];
+        for &chain_id in Self::SUPPORTED_CHAINS {
+            if let Some(update) = get_chain_update(
+                &self.client,
+                chain_id,
+                Self::coin_symbol_for_chain(chain_id),
+            )
+            .await
+            {
+                ret.push(update);
+            }
+        }
+
+        ret
+    }
 }

@@ -2,11 +2,13 @@ function showReconnecting() {
   document.getElementById('reconnecting').style.display = 'block';
 }
 
-function showConnError(error) {
-  document.getElementById('conn-error').textContent = error + ' ';
+function showConnLost() {
+  document.getElementById('reconnecting').style.display = 'none';
+  document.getElementById('conn-lost').style.display = 'block';
 }
 
 function showConnected() {
+  document.getElementById('conn-lost').style.display = 'none';
   document.getElementById('reconnecting').style.display = 'none';
 }
 
@@ -143,7 +145,6 @@ class App {
     socket.addEventListener('open', function (event) {
       showConnected();
       console.log('Connected.');
-      socket.send('Hello Server!');
     });
 
     socket.addEventListener('message', function (event) {
@@ -160,13 +161,13 @@ class App {
     });
 
     socket.addEventListener('error', function (err) {
-      showConnError('Connection error.');
       console.log('Socket encountered error: ', err);
       socket.close();
     });
 
 
     socket.addEventListener('close', function () {
+      showConnLost();
       console.log('Socket is closed. Reconnecting soon...');
       setTimeout(function() {
         app.connect();
