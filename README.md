@@ -5,9 +5,7 @@ as reported by different sources.
 
 # Status
 
-Still early, but it's basically working.
-
-![chain-height-monitor screenshot](https://i.imgur.com/QKOJ8aq.png)
+Still early, but basically working. Check live demo on https://chainmonitor.info
 
 ## Goals
 
