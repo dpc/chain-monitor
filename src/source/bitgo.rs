@@ -1,5 +1,5 @@
 use super::{ChainId, ChainId::*, SourceId};
-use crate::{get_now_ts, ChainState, ChainStateUpdate};
+use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
 use serde::Deserialize;
@@ -32,7 +32,7 @@ pub(crate) async fn get_chain_state(
     })
 }
 
-async fn get_chain_update(
+async fn get_updates(
     client: &reqwest::Client,
     chain: ChainId,
     host: &str,
@@ -67,11 +67,28 @@ impl BitGo {
 
     fn host_for_chain(chain: ChainId) -> &'static str {
         match chain {
-            Bitcoin | BitcoinCash | Litecoin | Ethereum | Dash | Polkadot | BitcoinGold | BitcoinSV | Solana | Ripple | Stellar | ZCash | Eos
-            | Avalanche | Algorand | Celo | Casper | RSK | Stacks => "bitgo.com",
-            BitcoinTestnet | BitcoinCashTestnet | LitecoinTestnet | EthereumGoerliTestnet | DashTestnet | BitcoinSVTestnet | SolanaTestnet | RippleTestnet | StellarTestnet | EosTestnet | ZCashTestnet
-            | AlgorandTestnet | CeloTestnet | CasperTestnet | RSKTestnet | StacksTestnet => "test.bitgo.com",
-            Doge | Cardano | Monero | Kusama | ECash | Mixin | GroestlCoin | BinanceCoin => unreachable!(),
+            Bitcoin | BitcoinCash | Litecoin | Ethereum | Dash | Polkadot | BitcoinGold
+            | BitcoinSV | Solana | Ripple | Stellar | ZCash | Eos | Avalanche | Algorand | Celo
+            | Casper | RSK | Stacks => "bitgo.com",
+            BitcoinTestnet
+            | BitcoinCashTestnet
+            | LitecoinTestnet
+            | EthereumGoerliTestnet
+            | DashTestnet
+            | BitcoinSVTestnet
+            | SolanaTestnet
+            | RippleTestnet
+            | StellarTestnet
+            | EosTestnet
+            | ZCashTestnet
+            | AlgorandTestnet
+            | CeloTestnet
+            | CasperTestnet
+            | RSKTestnet
+            | StacksTestnet => "test.bitgo.com",
+            Doge | Cardano | Monero | Kusama | ECash | Mixin | GroestlCoin | BinanceCoin => {
+                unreachable!()
+            }
         }
     }
 
@@ -128,15 +145,43 @@ impl BitGo {
 impl super::StaticSource for BitGo {
     const ID: SourceId = SourceId::BitGo;
     const SUPPORTED_CHAINS: &'static [ChainId] = &[
-        Bitcoin, Litecoin, BitcoinCash, Dash, ZCash, BitcoinGold, BitcoinSV, Ethereum, Ripple, Stellar, Eos, Avalanche, Algorand, Celo, Casper, RSK, Stacks,
-        BitcoinTestnet, LitecoinTestnet, BitcoinCashTestnet, DashTestnet, ZCashTestnet, BitcoinSVTestnet, EthereumGoerliTestnet, RippleTestnet, StellarTestnet, EosTestnet, AlgorandTestnet, CeloTestnet, CasperTestnet,
-        RSKTestnet, StacksTestnet,
+        Bitcoin,
+        Litecoin,
+        BitcoinCash,
+        Dash,
+        ZCash,
+        BitcoinGold,
+        BitcoinSV,
+        Ethereum,
+        Ripple,
+        Stellar,
+        Eos,
+        Avalanche,
+        Algorand,
+        Celo,
+        Casper,
+        RSK,
+        Stacks,
+        BitcoinTestnet,
+        LitecoinTestnet,
+        BitcoinCashTestnet,
+        DashTestnet,
+        ZCashTestnet,
+        BitcoinSVTestnet,
+        EthereumGoerliTestnet,
+        RippleTestnet,
+        StellarTestnet,
+        EosTestnet,
+        AlgorandTestnet,
+        CeloTestnet,
+        CasperTestnet,
+        RSKTestnet,
+        StacksTestnet,
     ];
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
-        let mut ret = vec![];
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
         for &chain_id in Self::SUPPORTED_CHAINS {
-            if let Some(update) = get_chain_update(
+            if let Some(update) = get_updates(
                 &self.client,
                 chain_id,
                 Self::host_for_chain(chain_id),
@@ -144,10 +189,8 @@ impl super::StaticSource for BitGo {
             )
             .await
             {
-                ret.push(update);
+                recorder.update(update).await;
             }
         }
-
-        ret
     }
 }

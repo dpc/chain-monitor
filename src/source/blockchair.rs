@@ -4,7 +4,7 @@ use super::{
     ChainId::{self, *},
     SourceId::{self, *},
 };
-use crate::{get_now_ts, ChainState, ChainStateUpdate};
+use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
 use serde::Deserialize;
@@ -118,21 +118,20 @@ impl super::StaticSource for Blockchair {
         GroestlCoin,
     ];
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
         let ts = get_now_ts();
         match get_homepage_en(&self.client).await {
             Ok(state) => {
                 let data = state.data.stats.data;
 
-                Self::SUPPORTED_CHAINS
-                    .iter()
-                    .filter_map(|&chain| {
-                        let symbol = Self::coin_symbol_for_chain(chain);
+                for &chain in Self::SUPPORTED_CHAINS {
+                    let symbol = Self::coin_symbol_for_chain(chain);
 
-                        if let Some(data) = data.get(symbol) {
-                            if let Some(data) = data.data.as_ref() {
-                                if let Some(height) = data.best_block_height {
-                                    Some(ChainStateUpdate {
+                    if let Some(data) = data.get(symbol) {
+                        if let Some(data) = data.data.as_ref() {
+                            if let Some(height) = data.best_block_height {
+                                recorder
+                                    .update(ChainStateUpdate {
                                         source: Blockchair,
                                         chain: chain,
                                         state: ChainState {
@@ -144,28 +143,22 @@ impl super::StaticSource for Blockchair {
                                             height,
                                         },
                                     })
-                                } else {
-                                    tracing::warn!(
-                                        "Missing chain data for blockchair coin data:: {symbol}"
-                                    );
-                                    None
-                                }
+                                    .await;
                             } else {
                                 tracing::warn!(
-                                    "Malformed data for blockchair coin data:: {symbol}"
+                                    "Missing chain data for blockchair coin data:: {symbol}"
                                 );
-                                None
                             }
                         } else {
-                            tracing::warn!("Couldn't find blockchair coin data:: {symbol}");
-                            None
+                            tracing::warn!("Malformed data for blockchair coin data:: {symbol}");
                         }
-                    })
-                    .collect()
+                    } else {
+                        tracing::warn!("Couldn't find blockchair coin data:: {symbol}");
+                    }
+                }
             }
             Err(e) => {
                 tracing::warn!("Couldn't update Blockchair: {e}");
-                vec![]
             }
         }
     }

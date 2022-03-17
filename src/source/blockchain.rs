@@ -1,5 +1,5 @@
 use super::{ChainId, ChainId::*, SourceId};
-use crate::{get_now_ts, ChainState, ChainStateUpdate};
+use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::{bail, Result};
 use axum::async_trait;
 use serde::Deserialize;
@@ -71,11 +71,12 @@ pub(crate) async fn get_chain_state_v1(
         height: resp.height,
     })
 }
-async fn get_chain_update(
+async fn check_chain_update(
+    recorer: &dyn ChainUpdateRecorder,
     client: &reqwest::Client,
     chain: ChainId,
     chain_api_symbol: &str,
-) -> Option<ChainStateUpdate> {
+) {
     let res = if chain == Ethereum {
         get_chain_state_v2(client, chain_api_symbol).await
     } else {
@@ -83,15 +84,18 @@ async fn get_chain_update(
     };
 
     match res {
-        Ok(state) => Some(ChainStateUpdate {
-            source: SourceId::BlockchainInfo,
-            chain: chain.into(),
-            state,
-        }),
+        Ok(state) => {
+            recorer
+                .update(ChainStateUpdate {
+                    source: SourceId::BlockchainInfo,
+                    chain: chain.into(),
+                    state,
+                })
+                .await
+        }
         Err(e) => {
             let chain_name: &str = chain.into();
             tracing::warn!("Couldn't update Blockchain {chain_name}: {e}");
-            None
         }
     }
 }
@@ -170,20 +174,15 @@ impl super::StaticSource for Blockchain {
         BitcoinCashTestnet,
     ];
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
-        let mut ret = vec![];
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
         for &chain_id in Self::SUPPORTED_CHAINS {
-            if let Some(update) = get_chain_update(
+            check_chain_update(
+                recorder,
                 &self.client,
                 chain_id,
                 Self::coin_symbol_for_chain(chain_id),
             )
             .await
-            {
-                ret.push(update);
-            }
         }
-
-        ret
     }
 }

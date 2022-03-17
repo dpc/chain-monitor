@@ -1,4 +1,4 @@
-use crate::{get_now_ts, ChainState, ChainStateUpdate};
+use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::{bail, Result};
 use axum::async_trait;
 use serde::Deserialize;
@@ -90,8 +90,7 @@ impl super::StaticSource for CoinMarketCap {
     const ID: SourceId = SourceId::CMC;
     const SUPPORTED_CHAINS: &'static [ChainId] = &[Bitcoin, Ethereum, Litecoin, BinanceCoin];
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
-        let mut ret = vec![];
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
         for &chain_id in Self::SUPPORTED_CHAINS {
             if let Some(update) = get_chain_update(
                 &self.client,
@@ -100,10 +99,8 @@ impl super::StaticSource for CoinMarketCap {
             )
             .await
             {
-                ret.push(update);
+                recorder.update(update).await;
             }
         }
-
-        ret
     }
 }

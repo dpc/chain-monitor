@@ -1,4 +1,4 @@
-use crate::ChainStateUpdate;
+use crate::ChainUpdateRecorder;
 use anyhow::Result;
 use axum::async_trait;
 use futures::future::join_all;
@@ -15,7 +15,7 @@ pub trait Source: Sync {
     fn get_supported_chains(&self) -> HashSet<ChainId>;
     fn get_supported_sources(&self) -> HashSet<SourceId>;
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate>;
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder);
 }
 
 /// Like `Source`, but doesn't do anything fancy,
@@ -25,7 +25,7 @@ pub trait StaticSource: Sync {
     const ID: SourceId;
     const SUPPORTED_CHAINS: &'static [ChainId];
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate>;
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder);
 }
 
 // Any [`StaticSource`] is a [`Source`] too
@@ -42,8 +42,8 @@ where
         HashSet::from_iter(vec![Self::ID])
     }
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
-        S::get_updates(&self).await
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
+        S::check_updates(&self, recorder).await
     }
 }
 
@@ -128,13 +128,7 @@ impl Source for Vec<Box<dyn Source>> {
         })
     }
 
-    async fn get_updates(&self) -> Vec<ChainStateUpdate> {
-        join_all(self.iter().map(|source| source.get_updates()))
-            .await
-            .into_iter()
-            .fold(vec![], |mut v, mut new| {
-                v.append(&mut new);
-                v
-            })
+    async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
+        join_all(self.iter().map(|source| source.check_updates(recorder))).await;
     }
 }

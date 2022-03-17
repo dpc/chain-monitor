@@ -1,6 +1,7 @@
 //! A simple web-app monitoring chain heights from various sources
 use anyhow::Result;
 use axum::{
+    async_trait,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         Extension, TypedHeader,
@@ -14,7 +15,10 @@ use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Serialize;
 use source::{ChainId, Source, SourceId};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
-use tokio::sync::{broadcast, Mutex};
+use tokio::{
+    sync::{broadcast, Mutex},
+    time::timeout,
+};
 use tower_http::{
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
@@ -122,7 +126,15 @@ impl AppState {
             tx,
         }
     }
+}
 
+#[async_trait]
+pub trait ChainUpdateRecorder: Sync {
+    async fn update(&self, update: ChainStateUpdate);
+}
+
+#[async_trait]
+impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
         {
             let update = update.clone();
@@ -135,6 +147,7 @@ impl AppState {
         let _ = self.tx.send(update);
     }
 }
+
 type SharedAppState = Arc<AppState>;
 
 #[derive(Serialize)]
@@ -321,8 +334,8 @@ async fn main() -> Result<()> {
     }
 
     loop {
-        for update in source.get_updates().await {
-            app_state.update(update).await;
+        if let Err(e) = timeout(Duration::from_secs(30), source.check_updates(&*app_state)).await {
+            tracing::warn!("Timeout waiting for updates: {e}");
         }
         tokio::time::sleep(Duration::from_secs(30)).await;
     }
