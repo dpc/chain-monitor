@@ -23,6 +23,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod opts;
 mod source;
+mod util;
 
 use opts::Opts;
 

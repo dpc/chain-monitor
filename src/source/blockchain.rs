@@ -1,6 +1,6 @@
 use super::{ChainId, ChainId::*, SourceId};
 use crate::{get_now_ts, ChainState, ChainStateUpdate};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use axum::async_trait;
 use serde::Deserialize;
 
@@ -10,7 +10,48 @@ struct BlockLatestBody {
     height: u64,
 }
 
-pub(crate) async fn get_chain_state(
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BlocksV2Body {
+    block_headers: Vec<BlockV2>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BlockV2 {
+    hash: String,
+    #[serde(deserialize_with = "crate::util::deserialize_number_from_string")]
+    number: u64,
+}
+pub(crate) async fn get_chain_state_v2(
+    client: &reqwest::Client,
+    chain_api_symbol: &str,
+) -> Result<ChainState> {
+    let resp = client
+        .get(format!(
+            "https://api.blockchain.info/v2/{chain_api_symbol}/data/blocks?size=1"
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<BlocksV2Body>()
+        .await?;
+
+    if resp.block_headers.len() != 1 {
+        bail!(
+            "Wrong size of blockHeaders in response: {}",
+            resp.block_headers.len()
+        );
+    }
+
+    Ok(ChainState {
+        ts: get_now_ts(),
+        hash: resp.block_headers[0].hash.clone(),
+        height: resp.block_headers[0].number,
+    })
+}
+
+pub(crate) async fn get_chain_state_v1(
     client: &reqwest::Client,
     chain_api_symbol: &str,
 ) -> Result<ChainState> {
@@ -30,13 +71,18 @@ pub(crate) async fn get_chain_state(
         height: resp.height,
     })
 }
-
 async fn get_chain_update(
     client: &reqwest::Client,
     chain: ChainId,
     chain_api_symbol: &str,
 ) -> Option<ChainStateUpdate> {
-    match get_chain_state(client, chain_api_symbol).await {
+    let res = if chain == Ethereum {
+        get_chain_state_v2(client, chain_api_symbol).await
+    } else {
+        get_chain_state_v1(client, chain_api_symbol).await
+    };
+
+    match res {
         Ok(state) => Some(ChainStateUpdate {
             source: SourceId::BlockchainInfo,
             chain: chain.into(),
