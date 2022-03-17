@@ -6,6 +6,7 @@ use serde::Serialize;
 use std::collections::HashSet;
 use strum::IntoStaticStr;
 mod bitgo;
+mod blockchain;
 mod blockchair;
 mod cmc;
 
@@ -49,6 +50,7 @@ where
 #[derive(Debug, Clone, Copy, IntoStaticStr, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SourceId {
     BitGo,
+    BlockchainInfo,
     Blockchair,
     CMC,
 }
@@ -104,6 +106,7 @@ pub enum ChainId {
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
     Ok(vec![
         Box::new(bitgo::BitGo::new()?),
+        Box::new(blockchain::Blockchain::new()?),
         Box::new(blockchair::Blockchair::new()?),
         Box::new(cmc::CoinMarketCap::new()?),
     ])
