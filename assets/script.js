@@ -126,7 +126,9 @@ class ChainsState {
           span.innerHTML += '&nbsp;';
           span.appendChild(document.createTextNode(`${chainState.hash}`));
           span.appendChild(document.createElement('br'));
-          span.appendChild(document.createTextNode(`ts: ${new Date(1000 * chainState.ts).toISOString()}`));
+          span.appendChild(document.createTextNode(`first_seen: ${new Date(1000 * chainState.first_seen_ts).toISOString()}`));
+          span.appendChild(document.createElement('br'));
+          span.appendChild(document.createTextNode(`last_checked: ${new Date(1000 * chainState.last_checked_ts).toISOString()}`));
           span.classList.add('tooltiptext');
 
           const diff = chainState.height - bestHeight;

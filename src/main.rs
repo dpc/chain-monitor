@@ -14,7 +14,12 @@ use axum::{
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Serialize;
 use source::{ChainId, Source, SourceId};
-use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    collections::{hash_map::Entry::*, HashMap},
+    net::SocketAddr,
+    sync::Arc,
+    time::Duration,
+};
 use tokio::{
     sync::{broadcast, Mutex},
     time::timeout,
@@ -43,23 +48,37 @@ pub fn get_now_ts() -> u64 {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct ChainStateTs {
-    ts: u64,
+    first_seen_ts: u64,
+    last_checked_ts: u64,
     #[serde(flatten)]
     state: ChainState,
+}
+
+impl ChainStateTs {
+    fn update_by(&self, mut other: ChainStateTs) -> ChainStateTs {
+        if self.state.height == other.state.height {
+            other.first_seen_ts = self.first_seen_ts;
+            other
+        } else {
+            other
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct ChainState {
+    hash: BlockHash,
+    height: ChainHeight,
 }
 
 impl ChainState {
     fn to_state_ts(self) -> ChainStateTs {
         ChainStateTs {
-            ts: get_now_ts(),
+            first_seen_ts: get_now_ts(),
+            last_checked_ts: get_now_ts(),
             state: self,
         }
     }
-}
-#[derive(Serialize, Clone, Debug)]
-pub struct ChainState {
-    hash: BlockHash,
-    height: ChainHeight,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -163,20 +182,31 @@ pub trait ChainUpdateRecorder: Sync {
 #[async_trait]
 impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
-        let update_ts = ChainStateUpdateTs {
-            source: update.source,
-            chain: update.chain,
-            state: update.state.to_state_ts(),
-        };
-        {
-            let update = update_ts.clone();
-            self.chain_states
+        let state_ts = {
+            let state = update.state.to_state_ts();
+            match self
+                .chain_states
                 .lock()
                 .await
-                .insert((update.source, update.chain), update.state);
-        }
+                .entry((update.source, update.chain))
+            {
+                Occupied(mut e) => {
+                    let new_state = e.get().update_by(state);
+                    e.insert(new_state.clone());
+                    new_state
+                }
+                Vacant(e) => {
+                    e.insert(state.clone());
+                    state
+                }
+            }
+        };
         // we don't care if anyone is subscribed
-        let _ = self.tx.send(update_ts);
+        let _ = self.tx.send(ChainStateUpdateTs {
+            source: update.source,
+            chain: update.chain,
+            state: state_ts,
+        });
     }
 }
 
