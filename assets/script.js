@@ -93,6 +93,7 @@ class ChainsState {
       const bestHeight = this.bestHeight[chainIdx];
 
       const tr = document.createElement('tr');
+      table.appendChild(tr);
 
       {
         const th = document.createElement('td');
@@ -108,24 +109,38 @@ class ChainsState {
       }
 
       for (var sourceIdx = 0; sourceIdx < this.sources.length; sourceIdx++){
+        const stateIdx = this.getIdx(sourceIdx, chainIdx);
         const td = document.createElement('td');
-        const chainState = this.states[this.getIdx(sourceIdx, chainIdx)];
+        tr.appendChild(td);
+        const div = document.createElement('div');
+        td.appendChild(div);
+        div.classList.add('tooltip');
+
+        const chainState = this.states[stateIdx];
         if (chainState) {
+          const span = document.createElement('span');
+          div.appendChild(span);
+          span.appendChild(document.createTextNode(`height: ${chainState.height}`));
+          span.appendChild(document.createElement('br'));
+          span.appendChild(document.createTextNode(`hash:`));
+          span.innerHTML += '&nbsp;';
+          span.appendChild(document.createTextNode(`${chainState.hash}`));
+          span.appendChild(document.createElement('br'));
+          span.appendChild(document.createTextNode(`ts: ${new Date(1000 * chainState.ts).toISOString()}`));
+          span.classList.add('tooltiptext');
+
           const diff = chainState.height - bestHeight;
           if (diff >= -1) {
             td.classList.add('at-chainhead');
           } else {
             td.classList.add('not-at-chainhead');
           }
-          td.appendChild(document.createTextNode(diff));
+          div.appendChild(document.createTextNode(diff));
         } else {
-          td.appendChild(document.createTextNode(""));
+          div.appendChild(document.createTextNode(""));
             td.classList.add('missing-state');
         }
-        tr.appendChild(td);
       }
-
-      table.appendChild(tr);
     }
 
     return table;
@@ -167,7 +182,7 @@ class App {
         app.chains = new ChainsState(msg.sources, msg.sourcesFullName, msg.chains, msg.chainsFullName);
         app.renderChains();
       } else if (msg.type === 'update') {
-        app.chains.update(msg.source, msg.chain, msg.state);
+        app.chains.update(msg.source, msg.chain, msg);
         app.renderChains();
       }
     });

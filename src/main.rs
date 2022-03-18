@@ -44,7 +44,17 @@ pub fn get_now_ts() -> u64 {
 #[derive(Serialize, Clone, Debug)]
 pub struct ChainStateTs {
     ts: u64,
+    #[serde(flatten)]
     state: ChainState,
+}
+
+impl ChainState {
+    fn to_state_ts(self) -> ChainStateTs {
+        ChainStateTs {
+            ts: get_now_ts(),
+            state: self,
+        }
+    }
 }
 #[derive(Serialize, Clone, Debug)]
 pub struct ChainState {
@@ -58,6 +68,13 @@ pub struct ChainStateUpdate {
     chain: ChainId,
     state: ChainState,
 }
+#[derive(Serialize, Clone, Debug)]
+pub struct ChainStateUpdateTs {
+    source: SourceId,
+    chain: ChainId,
+    #[serde(flatten)]
+    state: ChainStateTs,
+}
 
 // Our shared state
 pub struct AppState {
@@ -68,24 +85,24 @@ pub struct AppState {
     all_chains: Vec<ChainId>,
     all_chains_full_names: Vec<SourceName>,
     chain_states: Mutex<HashMap<(SourceId, ChainId), ChainStateTs>>,
-    tx: broadcast::Sender<ChainStateUpdate>,
+    tx: broadcast::Sender<ChainStateUpdateTs>,
 }
 
 impl AppState {
-    async fn get_all_chain_states(&self) -> Vec<ChainStateUpdate> {
+    async fn get_all_chain_states(&self) -> Vec<ChainStateUpdateTs> {
         self.chain_states
             .lock()
             .await
             .iter()
-            .map(|(k, v)| ChainStateUpdate {
+            .map(|(k, v)| ChainStateUpdateTs {
                 source: k.0.clone(),
                 chain: k.1.clone(),
-                state: v.state.clone(),
+                state: v.clone(),
             })
             .collect()
     }
 
-    fn subscribe_to_updates(&self) -> broadcast::Receiver<ChainStateUpdate> {
+    fn subscribe_to_updates(&self) -> broadcast::Receiver<ChainStateUpdateTs> {
         self.tx.subscribe()
     }
 
@@ -146,18 +163,20 @@ pub trait ChainUpdateRecorder: Sync {
 #[async_trait]
 impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
+        let update_ts = ChainStateUpdateTs {
+            source: update.source,
+            chain: update.chain,
+            state: update.state.to_state_ts(),
+        };
         {
-            let update = update.clone();
-            self.chain_states.lock().await.insert(
-                (update.source, update.chain),
-                ChainStateTs {
-                    ts: get_now_ts(),
-                    state: update.state,
-                },
-            );
+            let update = update_ts.clone();
+            self.chain_states
+                .lock()
+                .await
+                .insert((update.source, update.chain), update.state);
         }
         // we don't care if anyone is subscribed
-        let _ = self.tx.send(update);
+        let _ = self.tx.send(update_ts);
     }
 }
 
@@ -173,7 +192,7 @@ enum WSMessage {
         chains: Vec<&'static str>,
         chains_full_name: Vec<&'static str>,
     },
-    Update(ChainStateUpdate),
+    Update(ChainStateUpdateTs),
 }
 
 fn setup_server(
