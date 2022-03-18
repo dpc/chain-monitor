@@ -86,7 +86,7 @@ impl BitGo {
             | CasperTestnet
             | RSKTestnet
             | StacksTestnet => "test.bitgo.com",
-            Doge | Cardano | Monero | Kusama | ECash | Mixin | GroestlCoin | BinanceCoin => {
+            Doge | Cardano | Monero | Kusama | ECash | Mixin | Groestlcoin | BinanceCoin => {
                 unreachable!()
             }
         }
@@ -125,7 +125,7 @@ impl BitGo {
             Kusama => unreachable!(),
             ECash => unreachable!(),
             Mixin => unreachable!(),
-            GroestlCoin => unreachable!(),
+            Groestlcoin => unreachable!(),
             Algorand => "algo",
             Celo => "celo",
             Casper => "cspr",

@@ -58,9 +58,11 @@ pub struct ChainStateUpdate {
 // Our shared state
 pub struct AppState {
     all_sources_names: Vec<SourceName>,
+    all_sources_full_names: Vec<SourceName>,
     all_sources: Vec<SourceId>,
     all_chains_names: Vec<ChainName>,
     all_chains: Vec<ChainId>,
+    all_chains_full_names: Vec<SourceName>,
     chain_states: Mutex<HashMap<(SourceId, ChainId), ChainState>>,
     tx: broadcast::Sender<ChainStateUpdate>,
 }
@@ -89,6 +91,7 @@ impl AppState {
             Err(pos) => {
                 self.all_sources.insert(pos, source);
                 self.all_sources_names.insert(pos, source.into());
+                self.all_sources_full_names.insert(pos, source.full_name());
             }
         }
     }
@@ -106,6 +109,7 @@ impl AppState {
             Err(pos) => {
                 self.all_chains.insert(pos, chain);
                 self.all_chains_names.insert(pos, chain.into());
+                self.all_chains_full_names.insert(pos, chain.full_name());
             }
         }
     }
@@ -119,7 +123,9 @@ impl AppState {
         let (tx, _rx) = tokio::sync::broadcast::channel(1000);
         AppState {
             all_chains_names: Default::default(),
+            all_chains_full_names: Default::default(),
             all_sources_names: Default::default(),
+            all_sources_full_names: Default::default(),
             all_chains: Default::default(),
             all_sources: Default::default(),
             chain_states: Mutex::new(HashMap::new()),
@@ -151,11 +157,14 @@ impl ChainUpdateRecorder for AppState {
 type SharedAppState = Arc<AppState>;
 
 #[derive(Serialize)]
-#[serde(tag = "type", rename_all = "kebab-case")]
+#[serde(tag = "type", rename_all = "camelCase")]
 enum WSMessage {
+    #[serde(rename_all = "camelCase")]
     Init {
         sources: Vec<&'static str>,
+        sources_full_name: Vec<&'static str>,
         chains: Vec<&'static str>,
+        chains_full_name: Vec<&'static str>,
     },
     Update(ChainStateUpdate),
 }
@@ -255,7 +264,9 @@ async fn handle_socket_try(socket: WebSocket, app_state: SharedAppState) -> Resu
     sender
         .send(Message::Text(serde_json::to_string(&WSMessage::Init {
             sources: app_state.all_sources_names.clone(),
+            sources_full_name: app_state.all_sources_full_names.clone(),
             chains: app_state.all_chains_names.clone(),
+            chains_full_name: app_state.all_chains_full_names.clone(),
         })?))
         .await?;
 

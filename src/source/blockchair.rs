@@ -76,7 +76,7 @@ impl Blockchair {
             Doge => "dogecoin",
             Dash => "dash",
             Ripple => "ripple",
-            GroestlCoin => "groestlcoin",
+            Groestlcoin => "groestlcoin",
             Stellar => "stellar",
             Monero => "monero",
             Cardano => "cardano",
@@ -115,7 +115,7 @@ impl super::StaticSource for Blockchair {
         ECash,
         Dash,
         Mixin,
-        GroestlCoin,
+        Groestlcoin,
     ];
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {

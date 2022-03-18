@@ -87,7 +87,7 @@ async fn check_chain_update(
         Ok(state) => {
             recorer
                 .update(ChainStateUpdate {
-                    source: SourceId::BlockchainInfo,
+                    source: SourceId::Blockchain,
                     chain: chain.into(),
                     state,
                 })
@@ -147,7 +147,7 @@ impl Blockchain {
             Kusama => unreachable!(),
             ECash => unreachable!(),
             Mixin => unreachable!(),
-            GroestlCoin => unreachable!(),
+            Groestlcoin => unreachable!(),
             Algorand => unreachable!(),
             Celo => unreachable!(),
             Casper => unreachable!(),
@@ -165,7 +165,7 @@ impl Blockchain {
 
 #[async_trait]
 impl super::StaticSource for Blockchain {
-    const ID: SourceId = SourceId::BlockchainInfo;
+    const ID: SourceId = SourceId::Blockchain;
     const SUPPORTED_CHAINS: &'static [ChainId] = &[
         Bitcoin,
         BitcoinCash,

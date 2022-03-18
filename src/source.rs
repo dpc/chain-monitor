@@ -50,9 +50,20 @@ where
 #[derive(Debug, Clone, Copy, IntoStaticStr, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SourceId {
     BitGo,
-    BlockchainInfo,
+    Blockchain,
     Blockchair,
     CMC,
+}
+
+impl SourceId {
+    pub fn full_name(self) -> &'static str {
+        match self {
+            SourceId::BitGo => "BitGo",
+            SourceId::Blockchain => "Blockchain.com",
+            SourceId::Blockchair => "Blockchair",
+            SourceId::CMC => "CoinMarketCap",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, IntoStaticStr, Hash, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -72,7 +83,7 @@ pub enum ChainId {
     ECash,
     Eos,
     Ethereum,
-    GroestlCoin,
+    Groestlcoin,
     Kusama,
     Litecoin,
     Mixin,
@@ -103,6 +114,55 @@ pub enum ChainId {
     ZCashTestnet,
 }
 
+impl ChainId {
+    pub fn full_name(self) -> &'static str {
+        match self {
+            ChainId::Algorand => "Algorand",
+            ChainId::Avalanche => "Avalanche",
+            ChainId::BinanceCoin => "Binance Coin",
+            ChainId::Bitcoin => "Bitcoin",
+            ChainId::BitcoinCash => "Bitcoin Cash",
+            ChainId::BitcoinGold => "Bitcoin Gold",
+            ChainId::BitcoinSV => "Bitcoin SV",
+            ChainId::Cardano => "Cardano",
+            ChainId::Casper => "Casper",
+            ChainId::Celo => "Celo",
+            ChainId::Dash => "Dash",
+            ChainId::Doge => "Doge",
+            ChainId::ECash => "ECash",
+            ChainId::Eos => "Eos",
+            ChainId::Ethereum => "Ethereum",
+            ChainId::Groestlcoin => "Groestlcoin",
+            ChainId::Kusama => "Kusama",
+            ChainId::Litecoin => "Litecoin",
+            ChainId::Mixin => "Mixin",
+            ChainId::Monero => "Monero",
+            ChainId::Polkadot => "Polkadot",
+            ChainId::Ripple => "Ripple",
+            ChainId::RSK => "RSK",
+            ChainId::Solana => "Solana",
+            ChainId::Stacks => "Stacks",
+            ChainId::Stellar => "Stellar",
+            ChainId::ZCash => "ZCash",
+            ChainId::AlgorandTestnet => "Algorand Testnet",
+            ChainId::BitcoinCashTestnet => "Bitcoin Cash Testnet",
+            ChainId::BitcoinSVTestnet => "Bitcoin SV Testnet",
+            ChainId::BitcoinTestnet => "Bitcoin Testnet",
+            ChainId::CasperTestnet => "Casper Testnet",
+            ChainId::CeloTestnet => "Celo Testnet",
+            ChainId::DashTestnet => "Dash Testnet",
+            ChainId::EosTestnet => "Eos Testnet",
+            ChainId::EthereumGoerliTestnet => "Ethereum Goerli Testnet",
+            ChainId::LitecoinTestnet => "Litecoin Testnet",
+            ChainId::RippleTestnet => "Ripple Testnet",
+            ChainId::RSKTestnet => "RSK Testnet",
+            ChainId::SolanaTestnet => "Solana Testnet",
+            ChainId::StacksTestnet => "Stacks Testnet",
+            ChainId::StellarTestnet => "Stellar Testnet",
+            ChainId::ZCashTestnet => "ZCash Testnet",
+        }
+    }
+}
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
     Ok(vec![
         Box::new(bitgo::BitGo::new()?),

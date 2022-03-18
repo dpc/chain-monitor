@@ -14,9 +14,11 @@ function showConnected() {
 
 
 class ChainsState {
-  constructor(sources, chains) {
+  constructor(sources, sourcesFullName, chains, chainsFullName) {
     this.sources = sources;
+    this.sourcesFullName = sourcesFullName;
     this.chains = chains;
+    this.chainsFullName = chainsFullName;
     this.states = [];
     this.bestHeight = Array(chains.length).fill(0);
   }
@@ -68,8 +70,18 @@ class ChainsState {
 
       for (var sourceIdx = 0; sourceIdx < this.sources.length; sourceIdx++){
         const th = document.createElement('th');
-        th.setAttribute('scope', 'col');
-        th.appendChild(document.createTextNode(this.sources[sourceIdx]));
+        const div = document.createElement('div');
+        div.setAttribute('scope', 'col');
+        div.appendChild(document.createTextNode(this.sources[sourceIdx]));
+        div.classList.add('tooltip');
+
+        const span = document.createElement('span');
+        span.appendChild(document.createTextNode(this.sourcesFullName[sourceIdx]));
+        span.classList.add('tooltiptext');
+
+        div.appendChild(span);
+        th.appendChild(div);
+
         headerTr.appendChild(th);
       }
 
@@ -85,7 +97,7 @@ class ChainsState {
       {
         const th = document.createElement('td');
         th.setAttribute('scope', 'row');
-        th.appendChild(document.createTextNode(this.chains[chainIdx]));
+        th.appendChild(document.createTextNode(this.chainsFullName[chainIdx]));
         tr.appendChild(th);
       }
 
@@ -152,7 +164,7 @@ class App {
       const msg = JSON.parse(event.data);
 
       if (msg.type === 'init') {
-        app.chains = new ChainsState(msg.sources, msg.chains);
+        app.chains = new ChainsState(msg.sources, msg.sourcesFullName, msg.chains, msg.chainsFullName);
         app.renderChains();
       } else if (msg.type === 'update') {
         app.chains.update(msg.source, msg.chain, msg.state);
