@@ -2,6 +2,7 @@ use super::{ChainId, ChainId::*, SourceId};
 use crate::{ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
+use rand::{seq::SliceRandom, thread_rng};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -179,7 +180,12 @@ impl super::StaticSource for BitGo {
     ];
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
-        for &chain_id in Self::SUPPORTED_CHAINS {
+        // randomize the order to give all chains a chance, even in the presence
+        // of rate limiting
+        let mut supported_chains = Self::SUPPORTED_CHAINS.to_vec();
+        supported_chains.shuffle(&mut thread_rng());
+
+        for chain_id in supported_chains {
             if let Some(update) = get_updates(
                 &self.client,
                 chain_id,
