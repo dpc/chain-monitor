@@ -12,6 +12,9 @@ pub struct Opts {
 
     #[clap(long = "daemon", short = 'd')]
     pub daemon: bool,
+
+    #[clap(long = "dynamic")]
+    pub dynamic: bool,
 }
 
 pub fn from_args() -> Opts {

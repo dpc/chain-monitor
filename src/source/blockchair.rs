@@ -4,7 +4,7 @@ use super::{
     ChainId::{self, *},
     SourceId::{self, *},
 };
-use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
+use crate::{ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
 use serde::Deserialize;
@@ -119,7 +119,6 @@ impl super::StaticSource for Blockchair {
     ];
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
-        let ts = get_now_ts();
         match get_homepage_en(&self.client).await {
             Ok(state) => {
                 let data = state.data.stats.data;
@@ -135,7 +134,6 @@ impl super::StaticSource for Blockchair {
                                         source: Blockchair,
                                         chain: chain,
                                         state: ChainState {
-                                            ts,
                                             hash: data
                                                 .best_block_hash
                                                 .clone()

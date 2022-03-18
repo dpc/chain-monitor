@@ -6,14 +6,6 @@ publish = false
 license = "MPL-2.0 OR MIT OR Apache-2.0"
 readme = "README.md"
 
-[features]
-default = []
-
-# enable to serve assets (html, js, etc) dynamically from the `./assets/` directory
-# without a need to recompile; currently broken due to lack of correct mime type
-# on style.css file
-dynamic = []
-
 [dependencies]
 axum = { version = "0.4.8", features = ["ws", "headers"] }
 hyper = { version = "*" }

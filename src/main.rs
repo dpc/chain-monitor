@@ -38,12 +38,16 @@ type ChainHeight = u64;
 type BlockHash = String;
 
 pub fn get_now_ts() -> u64 {
-    u64::try_from(time::OffsetDateTime::now_utc().unix_timestamp()).expect("no negativ timestamps")
+    u64::try_from(time::OffsetDateTime::now_utc().unix_timestamp()).expect("no negative timestamps")
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub struct ChainState {
+pub struct ChainStateTs {
     ts: u64,
+    state: ChainState,
+}
+#[derive(Serialize, Clone, Debug)]
+pub struct ChainState {
     hash: BlockHash,
     height: ChainHeight,
 }
@@ -63,7 +67,7 @@ pub struct AppState {
     all_chains_names: Vec<ChainName>,
     all_chains: Vec<ChainId>,
     all_chains_full_names: Vec<SourceName>,
-    chain_states: Mutex<HashMap<(SourceId, ChainId), ChainState>>,
+    chain_states: Mutex<HashMap<(SourceId, ChainId), ChainStateTs>>,
     tx: broadcast::Sender<ChainStateUpdate>,
 }
 
@@ -76,7 +80,7 @@ impl AppState {
             .map(|(k, v)| ChainStateUpdate {
                 source: k.0.clone(),
                 chain: k.1.clone(),
-                state: v.clone(),
+                state: v.state.clone(),
             })
             .collect()
     }
@@ -144,10 +148,13 @@ impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
         {
             let update = update.clone();
-            self.chain_states
-                .lock()
-                .await
-                .insert((update.source, update.chain), update.state);
+            self.chain_states.lock().await.insert(
+                (update.source, update.chain),
+                ChainStateTs {
+                    ts: get_now_ts(),
+                    state: update.state,
+                },
+            );
         }
         // we don't care if anyone is subscribed
         let _ = self.tx.send(update);
@@ -176,7 +183,7 @@ fn setup_server(
     let app = Router::new();
 
     // enable dynamic files if the feature is enabled
-    let app = if cfg!(dynamic) {
+    let app = if opts.dynamic {
         app.fallback(
             get_service(ServeDir::new("assets").append_index_html_on_directories(true))
                 .handle_error(|error: std::io::Error| async move {

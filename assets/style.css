@@ -95,7 +95,7 @@ table tr:nth-child(even) {
 /* Tooltip text */
 .tooltip .tooltiptext {
   visibility: hidden;
-  width: 120px;
+  min-width: 150px;
   background-color: black;
   color: #fff;
   text-align: center;

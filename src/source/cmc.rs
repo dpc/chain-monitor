@@ -1,4 +1,4 @@
-use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
+use crate::{ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::{bail, Result};
 use axum::async_trait;
 use serde::Deserialize;
@@ -32,7 +32,6 @@ pub(crate) async fn get_chain_state(
 
     if let Some(item) = resp.data.get(0) {
         Ok(ChainState {
-            ts: get_now_ts(),
             hash: item.hash.clone(),
             height: item.height,
         })

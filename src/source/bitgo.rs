@@ -1,5 +1,5 @@
 use super::{ChainId, ChainId::*, SourceId};
-use crate::{get_now_ts, ChainState, ChainStateUpdate, ChainUpdateRecorder};
+use crate::{ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
 use serde::Deserialize;
@@ -26,7 +26,6 @@ pub(crate) async fn get_chain_state(
         .await?;
 
     Ok(ChainState {
-        ts: get_now_ts(),
         hash: resp.id,
         height: resp.height,
     })
