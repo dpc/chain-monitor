@@ -231,6 +231,7 @@ class ChainsState {
 
 class App {
   constructor() {
+    this.reconnectCount = 0;
 
   }
 
@@ -258,6 +259,7 @@ class App {
     socket.addEventListener('message', function (event) {
       console.log('Message from server ', event.data);
       const msg = JSON.parse(event.data);
+      app.reconnectCount = 0;
 
       if (msg.type === 'init') {
         app.chains = new ChainsState(msg.sources, msg.sourcesFullName, msg.chains, msg.chainsFullName);
@@ -276,10 +278,12 @@ class App {
 
     socket.addEventListener('close', function () {
       showConnLost();
-      console.log('Socket is closed. Reconnecting soon...');
+      const reconnectDelay = Math.min(60000, 1000 * app.reconnectCount * (Math.random() + 0.5))
+      console.log(`Socket is closed. Reconnecting soon (${reconnectDelay}ms...`);
+      app.reconnectCount++;
       setTimeout(function() {
         app.connect();
-      }, 10000 + Math.random() * 10000);
+      }, reconnectDelay);
     });
   }
 }
