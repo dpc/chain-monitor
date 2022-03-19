@@ -13,6 +13,14 @@ function showConnected() {
 }
 
 
+function playSound() {
+  try {
+    new Audio( 'sound1.mp3').play();
+  } catch (e) {
+    console.log("Unable to play sound: ${e}");
+  }
+}
+
 class ChainsState {
   constructor(sources, sourcesFullName, chains, chainsFullName) {
     this.sources = sources;
@@ -24,12 +32,19 @@ class ChainsState {
   }
 
   update(source, chain, chainState) {
-    console.log(`update: ${source} ${chain} ${this.getIdxByIds(source, chain)} ${JSON.stringify(chainState)}`);
-    this.states[this.getIdxByIds(source, chain)] = chainState;
+    const stateIdx = this.getIdxByIds(source, chain);
+    this.states[stateIdx] = chainState;
 
     const bestHeightIdx = this.getChainIdx(chain);
     if (this.bestHeight[bestHeightIdx] < chainState.height) {
       this.bestHeight[bestHeightIdx] = chainState.height;
+    }
+
+    if (chainState.first_seen_ts === chainState.last_checked_ts) {
+      playSound();
+      chainState.justIncreased = true;
+    } else {
+      chainState.justIncreased = false;
     }
   }
 
@@ -50,8 +65,6 @@ class ChainsState {
 
   renderTable() {
     const table = document.createElement('table');
-
-    console.log(`Rendering: ${JSON.stringify(this)}`);
 
     {
       const headerTr = document.createElement('tr');
@@ -137,10 +150,14 @@ class ChainsState {
           } else {
             td.classList.add('not-at-chainhead');
           }
+
+          if (chainState.justIncreased) {
+            td.classList.add('just-increased');
+          }
           div.appendChild(document.createTextNode(diff));
         } else {
           div.appendChild(document.createTextNode(""));
-            td.classList.add('missing-state');
+          td.classList.add('missing-state');
         }
       }
     }

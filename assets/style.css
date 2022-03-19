@@ -52,7 +52,9 @@ table th .tooltip {
 
 table td {
   text-align: right;
+  font-weight: bold;
 }
+
 
 /* headers */
 table th, table td:first-child {
@@ -70,6 +72,10 @@ table td.not-at-chainhead {
 
 table tr:nth-child(even) {
   background: #ddd;
+}
+
+table td.just-increased {
+  color: #00f;
 }
 
 #conn-lost {
@@ -111,3 +117,5 @@ table tr:nth-child(even) {
 .tooltip:hover .tooltiptext {
   visibility: visible;
 }
+
+

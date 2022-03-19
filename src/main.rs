@@ -247,6 +247,7 @@ fn setup_server(
             .route("/favicon.ico", get(favicon_ico_handler))
             .route("/style.css", get(style_css_handler))
             .route("/script.js", get(script_js_handler))
+            .route("/sound1.mp3", get(sound1_mp3_handler))
     };
 
     let app = app
@@ -287,9 +288,20 @@ async fn style_css_handler() -> impl IntoResponse {
     )
 }
 
-async fn favicon_ico_handler() -> &'static [u8] {
-    include_bytes!("../assets/favicon.ico")
+async fn favicon_ico_handler() -> impl IntoResponse {
+    (
+        Headers([("Content-Type", "image/x-icon")]),
+        include_bytes!("../assets/favicon.ico") as &'static [u8],
+    )
 }
+
+async fn sound1_mp3_handler() -> impl IntoResponse {
+    (
+        Headers([("Content-Type", "audio/mpeg")]),
+        include_bytes!("../assets/sound1.mp3") as &'static [u8],
+    )
+}
+
 async fn ws_handler(
     ws: WebSocketUpgrade,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
