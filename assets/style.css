@@ -54,7 +54,7 @@ table td {
   text-align: right;
 }
 
-table td.sound-enabled {
+table td.sound-enabled .height {
   font-weight: bold;
 }
 

@@ -101,6 +101,13 @@ class ChainsState {
     });
   }
 
+  addStopOnClickPropagationToElement (element) {
+    const this_ = this;
+    element.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  }
+
   createSoundToggleButtonElement (source, chain) {
     const toggleSound = document.createElement('i');
     toggleSound.href = '#';
@@ -191,6 +198,7 @@ class ChainsState {
         if (chainState) {
           const span = document.createElement('span');
           div.appendChild(span);
+          this.addStopOnClickPropagationToElement(span);
           span.appendChild(document.createTextNode(`height: ${chainState.height}`));
           span.appendChild(document.createElement('br'));
           span.appendChild(document.createTextNode(`hash:`));
@@ -217,7 +225,10 @@ class ChainsState {
           //   td.classList.add('stale');
           // }
 
-          div.appendChild(document.createTextNode(diff));
+          const diffSpan = document.createElement('span');
+          div.appendChild(diffSpan);
+          diffSpan.appendChild(document.createTextNode(diff));
+          diffSpan.classList.add('height');
         } else {
           div.appendChild(document.createTextNode(""));
           td.classList.add('missing-state');
