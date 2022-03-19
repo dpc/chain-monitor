@@ -29,6 +29,37 @@ class ChainsState {
     this.chainsFullName = chainsFullName;
     this.states = [];
     this.bestHeight = Array(chains.length).fill(0);
+    this.loadEnableSoundFor();
+  }
+
+  dbgEnableSoundFor() {
+    console.log(`enableSoundFor: ${JSON.stringify(this.enableSoundFor)}`);
+  }
+
+  loadEnableSoundFor() {
+    this.enableSoundFor = JSON.parse(window.localStorage.getItem('enableSoundFor') || '{}');
+    this.dbgEnableSoundFor();
+  }
+
+  saveEnableSoundFor() {
+    window.localStorage.setItem('enableSoundFor', JSON.stringify(this.enableSoundFor));
+    this.dbgEnableSoundFor();
+  }
+
+  enableSoundForIdx(source, chain) {
+    return source + '###' + chain;
+  }
+
+  toggleEnableSoundFor(source, chain) {
+    if (this.getEnableSoundFor(source, chain)) {
+      delete this.enableSoundFor[this.enableSoundForIdx(source, chain)];
+    } else {
+      this.enableSoundFor[this.enableSoundForIdx(source, chain)] = true;
+    }
+  }
+
+  getEnableSoundFor(source, chain) {
+    return this.enableSoundFor[this.enableSoundForIdx(source, chain)] || false;
   }
 
   update(source, chain, chainState) {
@@ -40,11 +71,9 @@ class ChainsState {
       this.bestHeight[bestHeightIdx] = chainState.height;
     }
 
-    if (chainState.first_seen_ts === chainState.last_checked_ts) {
+    const stalenessSecs = chainState.last_checked_ts - chainState.first_seen_ts;
+    if (stalenessSecs == 0 && this.getEnableSoundFor(source, chain)) {
       playSound();
-      chainState.justIncreased = true;
-    } else {
-      chainState.justIncreased = false;
     }
   }
 
@@ -63,6 +92,27 @@ class ChainsState {
     return this.chains.findIndex((element) => element === chain);
   }
 
+  addSoundToggleToElement (element, source, chain) {
+    const this_ = this;
+    element.addEventListener('click', function(e) {
+      this_.toggleEnableSoundFor(source, chain);
+      this_.saveEnableSoundFor();
+      window.app.redraw();
+    });
+  }
+
+  createSoundToggleButtonElement (source, chain) {
+    const toggleSound = document.createElement('i');
+    toggleSound.href = '#';
+    toggleSound.classList.add(`sound-${this.getEnableSoundFor(source, chain) ? 'enabled' : 'disabled' }`)
+    const this_ = this;
+    toggleSound.addEventListener('click', function(e) {
+      this_.toggleEnableSoundFor(source, chain);
+      this_.saveEnableSoundFor();
+      window.app.redraw();
+    });
+    return toggleSound;
+  }
   renderTable() {
     const table = document.createElement('table');
 
@@ -103,6 +153,7 @@ class ChainsState {
 
 
     for (var chainIdx = 0; chainIdx < this.chains.length; chainIdx++) {
+      const chain = this.chains[chainIdx];
       const bestHeight = this.bestHeight[chainIdx];
 
       const tr = document.createElement('tr');
@@ -122,17 +173,25 @@ class ChainsState {
       }
 
       for (var sourceIdx = 0; sourceIdx < this.sources.length; sourceIdx++){
+        const source = this.sources[sourceIdx];
         const stateIdx = this.getIdx(sourceIdx, chainIdx);
+        const chainState = this.states[stateIdx];
+
         const td = document.createElement('td');
         tr.appendChild(td);
+
+        if (chainState) {
+          td.classList.add(`sound-${this.getEnableSoundFor(source, chain) ? 'enabled' : 'disabled' }`)
+          this.addSoundToggleToElement(td, source, chain);
+        }
         const div = document.createElement('div');
         td.appendChild(div);
         div.classList.add('tooltip');
 
-        const chainState = this.states[stateIdx];
         if (chainState) {
           const span = document.createElement('span');
           div.appendChild(span);
+          span.appendChild(document.createElement('br'));
           span.appendChild(document.createTextNode(`height: ${chainState.height}`));
           span.appendChild(document.createElement('br'));
           span.appendChild(document.createTextNode(`hash:`));
@@ -151,9 +210,16 @@ class ChainsState {
             td.classList.add('not-at-chainhead');
           }
 
-          if (chainState.justIncreased) {
+          const stalenessSecs = chainState.last_checked_ts - chainState.first_seen_ts;
+          if (stalenessSecs < 25) {
             td.classList.add('just-increased');
           }
+          const nowTs = new Date().getTime() / 1000;
+          const lastUpdateSecs = nowTs - chainState.last_checked_ts;
+          if (lastUpdateSecs > 60) {
+            td.classList.add('stale');
+          }
+
           div.appendChild(document.createTextNode(diff));
         } else {
           div.appendChild(document.createTextNode(""));
@@ -164,7 +230,6 @@ class ChainsState {
 
     return table;
   }
-
 }
 
 class App {
@@ -172,7 +237,7 @@ class App {
 
   }
 
-  renderChains() {
+  redraw() {
     const stateTableContainer = document.getElementById("state-table")
     stateTableContainer.innerHTML = '';
     stateTableContainer.appendChild(this.chains.renderTable());
@@ -199,10 +264,10 @@ class App {
 
       if (msg.type === 'init') {
         app.chains = new ChainsState(msg.sources, msg.sourcesFullName, msg.chains, msg.chainsFullName);
-        app.renderChains();
+        app.redraw();
       } else if (msg.type === 'update') {
         app.chains.update(msg.source, msg.chain, msg);
-        app.renderChains();
+        app.redraw();
       }
     });
 
@@ -226,5 +291,6 @@ window.onload = function() {
   console.log("Page loaded.");
 
   const app = new App();
+  window.app = app;
   app.connect();
 };

@@ -52,6 +52,9 @@ table th .tooltip {
 
 table td {
   text-align: right;
+}
+
+table td.sound-enabled {
   font-weight: bold;
 }
 
@@ -76,6 +79,10 @@ table tr:nth-child(even) {
 
 table td.just-increased {
   color: #00f;
+}
+
+table td.stale {
+  color: #f22;
 }
 
 #conn-lost {
@@ -117,5 +124,3 @@ table td.just-increased {
 .tooltip:hover .tooltiptext {
   visibility: visible;
 }
-
-
