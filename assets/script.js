@@ -191,7 +191,6 @@ class ChainsState {
         if (chainState) {
           const span = document.createElement('span');
           div.appendChild(span);
-          span.appendChild(document.createElement('br'));
           span.appendChild(document.createTextNode(`height: ${chainState.height}`));
           span.appendChild(document.createElement('br'));
           span.appendChild(document.createTextNode(`hash:`));
