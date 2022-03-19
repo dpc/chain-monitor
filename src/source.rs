@@ -94,6 +94,7 @@ pub enum ChainId {
     Solana,
     Stacks,
     Stellar,
+    Tezos,
     ZCash,
 
     AlgorandTestnet,
@@ -111,6 +112,7 @@ pub enum ChainId {
     SolanaTestnet,
     StacksTestnet,
     StellarTestnet,
+    TezosTestnet,
     ZCashTestnet,
 }
 
@@ -143,6 +145,7 @@ impl ChainId {
             ChainId::Solana => "Solana",
             ChainId::Stacks => "Stacks",
             ChainId::Stellar => "Stellar",
+            ChainId::Tezos => "Tezos",
             ChainId::ZCash => "ZCash",
             ChainId::AlgorandTestnet => "Algorand Testnet",
             ChainId::BitcoinCashTestnet => "Bitcoin Cash Testnet",
@@ -159,6 +162,7 @@ impl ChainId {
             ChainId::SolanaTestnet => "Solana Testnet",
             ChainId::StacksTestnet => "Stacks Testnet",
             ChainId::StellarTestnet => "Stellar Testnet",
+            ChainId::TezosTestnet => "Tezos Testnet",
             ChainId::ZCashTestnet => "ZCash Testnet",
         }
     }

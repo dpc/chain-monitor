@@ -95,6 +95,27 @@ pub struct ChainStateUpdateTs {
     state: ChainStateTs,
 }
 
+impl ChainStateUpdateTs {
+    fn to_ws_update(self) -> WSChainStateUpdateTs {
+        WSChainStateUpdateTs {
+            first_seen_ts: self.state.first_seen_ts,
+            hash: self.state.state.hash,
+            height: self.state.state.height,
+            source: self.source,
+            chain: self.chain,
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct WSChainStateUpdateTs {
+    source: SourceId,
+    chain: ChainId,
+    first_seen_ts: u64,
+    hash: BlockHash,
+    height: ChainHeight,
+}
+
 // Our shared state
 pub struct AppState {
     all_sources_names: Vec<SourceName>,
@@ -222,7 +243,7 @@ enum WSMessage {
         chains: Vec<&'static str>,
         chains_full_name: Vec<&'static str>,
     },
-    Update(ChainStateUpdateTs),
+    Update(WSChainStateUpdateTs),
 }
 
 fn setup_server(
@@ -342,7 +363,7 @@ async fn handle_socket_try(socket: WebSocket, app_state: SharedAppState) -> Resu
     for update in app_state.get_all_chain_states().await {
         sender
             .send(Message::Text(serde_json::to_string(&WSMessage::Update(
-                update,
+                update.to_ws_update(),
             ))?))
             .await?;
     }
@@ -351,7 +372,7 @@ async fn handle_socket_try(socket: WebSocket, app_state: SharedAppState) -> Resu
     while let Ok(update) = rx.recv().await {
         sender
             .send(Message::Text(serde_json::to_string(&WSMessage::Update(
-                update,
+                update.to_ws_update(),
             ))?))
             .await?;
     }

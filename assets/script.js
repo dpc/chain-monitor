@@ -64,6 +64,7 @@ class ChainsState {
 
   update(source, chain, chainState) {
     const stateIdx = this.getIdxByIds(source, chain);
+    const prevState = this.states[stateIdx];
     this.states[stateIdx] = chainState;
 
     const bestHeightIdx = this.getChainIdx(chain);
@@ -71,8 +72,7 @@ class ChainsState {
       this.bestHeight[bestHeightIdx] = chainState.height;
     }
 
-    const stalenessSecs = chainState.last_checked_ts - chainState.first_seen_ts;
-    if (stalenessSecs == 0 && this.getEnableSoundFor(source, chain)) {
+    if ((prevState === undefined || prevState.hash != chainState.height) && this.getEnableSoundFor(source, chain)) {
       playSound();
     }
   }
@@ -198,8 +198,6 @@ class ChainsState {
           span.appendChild(document.createTextNode(`${chainState.hash}`));
           span.appendChild(document.createElement('br'));
           span.appendChild(document.createTextNode(`first_seen: ${new Date(1000 * chainState.first_seen_ts).toISOString()}`));
-          span.appendChild(document.createElement('br'));
-          span.appendChild(document.createTextNode(`last_checked: ${new Date(1000 * chainState.last_checked_ts).toISOString()}`));
           span.classList.add('tooltiptext');
 
           const diff = chainState.height - bestHeight;
@@ -209,15 +207,15 @@ class ChainsState {
             td.classList.add('not-at-chainhead');
           }
 
-          const stalenessSecs = chainState.last_checked_ts - chainState.first_seen_ts;
+          const nowTs = new Date().getTime() / 1000;
+          const stalenessSecs = nowTs  - chainState.first_seen_ts;
           if (stalenessSecs < 25) {
             td.classList.add('just-increased');
           }
-          const nowTs = new Date().getTime() / 1000;
-          const lastUpdateSecs = nowTs - chainState.last_checked_ts;
-          if (lastUpdateSecs > 60) {
-            td.classList.add('stale');
-          }
+          // const lastUpdateSecs = nowTs - chainState.last_checked_ts;
+          // if (lastUpdateSecs > 60) {
+          //   td.classList.add('stale');
+          // }
 
           div.appendChild(document.createTextNode(diff));
         } else {

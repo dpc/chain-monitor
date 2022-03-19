@@ -69,7 +69,7 @@ impl BitGo {
         match chain {
             Bitcoin | BitcoinCash | Litecoin | Ethereum | Dash | Polkadot | BitcoinGold
             | BitcoinSV | Solana | Ripple | Stellar | ZCash | Eos | Avalanche | Algorand | Celo
-            | Casper | RSK | Stacks => "bitgo.com",
+            | Casper | RSK | Stacks | Tezos => "bitgo.com",
             BitcoinTestnet
             | BitcoinCashTestnet
             | LitecoinTestnet
@@ -85,7 +85,8 @@ impl BitGo {
             | CeloTestnet
             | CasperTestnet
             | RSKTestnet
-            | StacksTestnet => "test.bitgo.com",
+            | StacksTestnet
+            | TezosTestnet => "test.bitgo.com",
             Doge | Cardano | Monero | Kusama | ECash | Mixin | Groestlcoin | BinanceCoin => {
                 unreachable!()
             }
@@ -116,6 +117,7 @@ impl BitGo {
             RippleTestnet => "txrp",
             Stellar => "xlm",
             StellarTestnet => "txlm",
+            Tezos => "xtz",
             ZCash => "zec",
             ZCashTestnet => "tzec",
             Eos => "eos",
@@ -137,6 +139,7 @@ impl BitGo {
             Stacks => "stx",
             RSKTestnet => "trbtc",
             StacksTestnet => "tstx",
+            TezosTestnet => "txtz",
         }
     }
 }
@@ -162,6 +165,7 @@ impl super::StaticSource for BitGo {
         Casper,
         RSK,
         Stacks,
+        Tezos,
         BitcoinTestnet,
         LitecoinTestnet,
         BitcoinCashTestnet,
@@ -177,6 +181,7 @@ impl super::StaticSource for BitGo {
         CasperTestnet,
         RSKTestnet,
         StacksTestnet,
+        TezosTestnet,
     ];
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
