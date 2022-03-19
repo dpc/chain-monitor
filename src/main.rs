@@ -65,7 +65,7 @@ impl ChainStateTs {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct ChainState {
     hash: BlockHash,
     height: ChainHeight,
@@ -203,8 +203,8 @@ pub trait ChainUpdateRecorder: Sync {
 #[async_trait]
 impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
-        let state_ts = {
-            let state = update.state.to_state_ts();
+        let (broadcast_update, state_ts) = {
+            let state_ts = update.state.to_state_ts();
             match self
                 .chain_states
                 .lock()
@@ -212,22 +212,25 @@ impl ChainUpdateRecorder for AppState {
                 .entry((update.source, update.chain))
             {
                 Occupied(mut e) => {
-                    let new_state = e.get().update_by(state);
+                    let old_state = e.get().clone();
+                    let new_state = old_state.update_by(state_ts);
                     e.insert(new_state.clone());
-                    new_state
+                    (new_state.state != old_state.state, new_state)
                 }
                 Vacant(e) => {
-                    e.insert(state.clone());
-                    state
+                    e.insert(state_ts.clone());
+                    (true, state_ts)
                 }
             }
         };
-        // we don't care if anyone is subscribed
-        let _ = self.tx.send(ChainStateUpdateTs {
-            source: update.source,
-            chain: update.chain,
-            state: state_ts,
-        });
+        if broadcast_update {
+            // we don't care if anyone is subscribed
+            let _ = self.tx.send(ChainStateUpdateTs {
+                source: update.source,
+                chain: update.chain,
+                state: state_ts,
+            });
+        }
     }
 }
 
