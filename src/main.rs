@@ -7,15 +7,18 @@ use axum::{
         Extension, TypedHeader,
     },
     http::StatusCode,
+    middleware,
     response::{Headers, Html, IntoResponse},
     routing::{get, get_service, IntoMakeService},
     Router,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
+use metrics::gauge;
 use serde::Serialize;
 use source::{ChainId, Source, SourceId};
 use std::{
     collections::{hash_map::Entry::*, HashMap},
+    future::ready,
     net::SocketAddr,
     sync::Arc,
     time::Duration,
@@ -31,6 +34,7 @@ use tower_http::{
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod opts;
+mod prom;
 mod source;
 mod util;
 
@@ -203,6 +207,14 @@ pub trait ChainUpdateRecorder: Sync {
 #[async_trait]
 impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
+        gauge!(
+            "chain_monitor_chain_height",
+            update.state.height as f64,
+            "source" => update.source.short_name(),
+            "chain" => update.chain.short_name(),
+            "sources_full_name" => update.source.full_name(),
+            "chain_full_name" => update.chain.full_name(),
+        );
         let (broadcast_update, state_ts) = {
             let state_ts = update.state.to_state_ts();
             match self
@@ -252,8 +264,10 @@ enum WSMessage {
 fn setup_server(
     opts: &Opts,
     app_state: SharedAppState,
-) -> axum::Server<hyper::server::conn::AddrIncoming, IntoMakeService<Router>> {
+) -> Result<axum::Server<hyper::server::conn::AddrIncoming, IntoMakeService<Router>>> {
     let app = Router::new();
+
+    let recorder_handle = prom::setup_metrics_recorder()?;
 
     // enable dynamic files if the feature is enabled
     let app = if opts.dynamic {
@@ -274,6 +288,12 @@ fn setup_server(
             .route("/sound1.mp3", get(sound1_mp3_handler))
     };
 
+    let app = if opts.enable_prometheus {
+        app.route("/metrics", get(move || ready(recorder_handle.render())))
+    } else {
+        app
+    };
+
     let app = app
         // routes are matched from bottom to top, so we have to put `nest` at the
         // top since it matches all routes
@@ -283,12 +303,13 @@ fn setup_server(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
         )
-        .layer(Extension(app_state));
+        .layer(Extension(app_state))
+        .route_layer(middleware::from_fn(prom::track_metrics));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], opts.listen_port));
     let server = axum::Server::bind(&addr).serve(app.into_make_service());
     tracing::info!("listening on {}", server.local_addr());
-    server
+    Ok(server)
 }
 
 async fn index_html_handler() -> impl IntoResponse {
@@ -404,6 +425,7 @@ fn start_browser(url: String) {
         let _ = spawn(&url);
     });
 }
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let opts = opts::from_args();
@@ -423,7 +445,7 @@ async fn main() -> Result<()> {
     app_state.add_sources(source.get_supported_sources());
 
     let app_state = Arc::new(app_state);
-    let server = setup_server(&opts, app_state.clone());
+    let server = setup_server(&opts, app_state.clone())?;
     let local_addr = server.local_addr();
 
     tokio::spawn({

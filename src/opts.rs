@@ -15,6 +15,9 @@ pub struct Opts {
 
     #[clap(long = "dynamic")]
     pub dynamic: bool,
+
+    #[clap(long = "enable-prometheus")]
+    pub enable_prometheus: bool,
 }
 
 pub fn from_args() -> Opts {

@@ -14,13 +14,13 @@ Done:
 * support both single-user (local) and web-service deployment cases,
 * keep relatively simple (tiny Rust backend + single-page + light plain-JS UI),
 * optional sound notifications
+* expose Prometheus metrics for use inside cloud infra,
 
 Near:
 
 * musl-based static binary releases,
 * indicate lack of progress (source height not increasing),
 * bubble up source update errors (icons + hint on hover?),
-* expose Prometheus metrics for use inside cloud infra,
 * opportunistic chain fork detection (mismatched hashes),
 * add more data sources,
 * adaptive update frequency,

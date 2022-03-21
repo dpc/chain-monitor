@@ -64,6 +64,9 @@ impl SourceId {
             SourceId::CMC => "CoinMarketCap",
         }
     }
+    pub fn short_name(self) -> &'static str {
+        self.into()
+    }
 }
 
 #[derive(Debug, Clone, Copy, IntoStaticStr, Hash, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -165,6 +168,9 @@ impl ChainId {
             ChainId::TezosTestnet => "Tezos Testnet",
             ChainId::ZCashTestnet => "ZCash Testnet",
         }
+    }
+    pub fn short_name(self) -> &'static str {
+        self.into()
     }
 }
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {

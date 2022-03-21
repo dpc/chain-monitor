@@ -28,7 +28,7 @@
       fenix-pkgs = fenix.packages.${system};
       fenix-channel = fenix-pkgs.complete;
       naersk-lib = naersk.lib."${system}".override {
-        inherit (fenix-pkgs.minimal) cargo rustc;
+        inherit (fenix-channel) cargo rustc;
       };
     in rec {
       packages.chain-monitor = naersk-lib.buildPackage ./.;
