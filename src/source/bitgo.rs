@@ -87,7 +87,8 @@ impl BitGo {
             | RSKTestnet
             | StacksTestnet
             | TezosTestnet => "test.bitgo.com",
-            Doge | Cardano | Monero | Kusama | ECash | Mixin | Groestlcoin | BinanceCoin => {
+            Doge | Cardano | Monero | Kusama | ECash | Mixin | Groestlcoin | BinanceCoin
+            | BitcoinSignet => {
                 unreachable!()
             }
         }
@@ -103,6 +104,7 @@ impl BitGo {
             Litecoin => "ltc",
             BitcoinCashTestnet => "tbch",
             BitcoinTestnet => "tbtc",
+            BitcoinSignet => unreachable!(),
             EthereumGoerliTestnet => "teth",
             LitecoinTestnet => "tltc",
             DashTestnet => "tdash",

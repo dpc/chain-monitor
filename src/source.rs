@@ -10,6 +10,7 @@ mod blockchain;
 mod blockchair;
 mod blockcypher;
 mod cmc;
+mod mempoolspace;
 
 #[async_trait]
 pub trait Source: Sync {
@@ -55,6 +56,7 @@ pub enum SourceId {
     Blockchair,
     BlockCypher,
     CMC,
+    MempoolSpace,
 }
 
 impl SourceId {
@@ -64,6 +66,7 @@ impl SourceId {
             SourceId::Blockchain => "Blockchain.com",
             SourceId::Blockchair => "Blockchair",
             SourceId::BlockCypher => "BlockCypher",
+            SourceId::MempoolSpace => "mempool.space",
             SourceId::CMC => "CoinMarketCap",
         }
     }
@@ -107,6 +110,7 @@ pub enum ChainId {
     BitcoinCashTestnet,
     BitcoinSVTestnet,
     BitcoinTestnet,
+    BitcoinSignet,
     CasperTestnet,
     CeloTestnet,
     DashTestnet,
@@ -170,6 +174,7 @@ impl ChainId {
             ChainId::StellarTestnet => "Stellar Testnet",
             ChainId::TezosTestnet => "Tezos Testnet",
             ChainId::ZCashTestnet => "ZCash Testnet",
+            ChainId::BitcoinSignet => "Bitcoin Signet",
         }
     }
     pub fn short_name(self) -> &'static str {
@@ -182,6 +187,7 @@ pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
         Box::new(blockchain::Blockchain::new()?),
         Box::new(blockchair::Blockchair::new()?),
         Box::new(blockcypher::BlockCypher::new()?),
+        Box::new(mempoolspace::MempoolSpace::new()?),
         Box::new(cmc::CoinMarketCap::new()?),
     ])
 }

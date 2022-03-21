@@ -159,6 +159,7 @@ impl Blockchain {
             StacksTestnet => unreachable!(),
             Tezos => unreachable!(),
             TezosTestnet => unreachable!(),
+            _ => unreachable!(),
         }
     }
 }
