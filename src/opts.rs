@@ -2,8 +2,8 @@ use clap::Parser;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
-    name = "chain-height-monitor",
-    about = "(block-)Chain Height Monitor Utility/Server"
+    name = "chain-monitor",
+    about = "(block-)Chain (Height) Monitor Utility/Server"
 )]
 pub struct Opts {
     /// Port to listen on

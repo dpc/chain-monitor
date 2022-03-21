@@ -31,10 +31,10 @@
         inherit (fenix-pkgs.minimal) cargo rustc;
       };
     in rec {
-      packages.chain-height-monitor = naersk-lib.buildPackage ./.;
+      packages.chain-monitor = naersk-lib.buildPackage ./.;
 
-      defaultPackage = self.packages.${system}.chain-height-monitor;
-      defaultApp = self.packages.${system}.chain-height-monitor;
+      defaultPackage = self.packages.${system}.chain-monitor;
+      defaultApp = self.packages.${system}.chain-monitor;
 
       # `nix develop`
       devShell = pkgs.mkShell

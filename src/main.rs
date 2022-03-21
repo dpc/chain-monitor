@@ -411,7 +411,7 @@ async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "chain_height_monitor=info,tower_http=debug".into()),
+                .unwrap_or_else(|_| "chain_monitor=info,tower_http=debug".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
