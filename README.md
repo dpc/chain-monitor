@@ -13,6 +13,7 @@ Done:
 
 * support both single-user (local) and web-service deployment cases,
 * keep relatively simple (tiny Rust backend + single-page + light plain-JS UI),
+* optional sound notifications
 
 Near:
 
