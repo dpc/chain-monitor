@@ -15,10 +15,10 @@ Done:
 * keep relatively simple (tiny Rust backend + single-page + light plain-JS UI),
 * optional sound notifications
 * expose Prometheus metrics for use inside cloud infra,
+* musl-based static binary releases,
 
 Near:
 
-* musl-based static binary releases,
 * indicate lack of progress (source height not increasing),
 * bubble up source update errors (icons + hint on hover?),
 * opportunistic chain fork detection (mismatched hashes),
