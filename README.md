@@ -1,4 +1,4 @@
-# Chain Height Monitor
+# Chain Monitor
 
 Simple web-UI based tool to monitor chain heights of various blockchains
 as reported by different sources.
