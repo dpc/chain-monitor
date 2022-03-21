@@ -8,6 +8,7 @@ use strum::IntoStaticStr;
 mod bitgo;
 mod blockchain;
 mod blockchair;
+mod blockcypher;
 mod cmc;
 
 #[async_trait]
@@ -52,6 +53,7 @@ pub enum SourceId {
     BitGo,
     Blockchain,
     Blockchair,
+    BlockCypher,
     CMC,
 }
 
@@ -61,6 +63,7 @@ impl SourceId {
             SourceId::BitGo => "BitGo",
             SourceId::Blockchain => "Blockchain.com",
             SourceId::Blockchair => "Blockchair",
+            SourceId::BlockCypher => "BlockCypher",
             SourceId::CMC => "CoinMarketCap",
         }
     }
@@ -178,6 +181,7 @@ pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
         Box::new(bitgo::BitGo::new()?),
         Box::new(blockchain::Blockchain::new()?),
         Box::new(blockchair::Blockchair::new()?),
+        Box::new(blockcypher::BlockCypher::new()?),
         Box::new(cmc::CoinMarketCap::new()?),
     ])
 }
