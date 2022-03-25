@@ -136,7 +136,11 @@ impl ChainId {
             | ChainId::BitcoinSV
             | ChainId::BitcoinTestnet
             | ChainId::BitcoinCashTestnet
-            | ChainId::BitcoinSVTestnet => 600,
+            | ChainId::BitcoinSVTestnet
+            | ChainId::ECash
+            | ChainId::Stacks
+            | ChainId::StacksTestnet => 600,
+            ChainId::Monero => 120,
             ChainId::ZCash | ChainId::ZCashTestnet => 75,
             ChainId::Litecoin | ChainId::LitecoinTestnet | ChainId::Dash | ChainId::DashTestnet => {
                 150
@@ -146,7 +150,7 @@ impl ChainId {
             ChainId::Algorand | Self::AlgorandTestnet => 5, // actually 4.5
             ChainId::Tezos | Self::TezosTestnet => 30,
             // I'm kind of lazy RN, so default to some sanity value for now
-            _ => 60,
+            _ => 120,
         }
     }
     pub fn full_name(self) -> &'static str {
