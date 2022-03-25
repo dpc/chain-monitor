@@ -69,7 +69,7 @@ impl BitGo {
         match chain {
             Bitcoin | BitcoinCash | Litecoin | Ethereum | Dash | Polkadot | BitcoinGold
             | BitcoinSV | Solana | Ripple | Stellar | ZCash | Eos | Avalanche | Algorand | Celo
-            | Casper | RSK | Stacks | Tezos => "bitgo.com",
+            | Casper | RSK | Stacks | Tezos | EthereumClassic => "bitgo.com",
             BitcoinTestnet
             | BitcoinCashTestnet
             | LitecoinTestnet
@@ -101,6 +101,7 @@ impl BitGo {
             BitcoinGold => "btg",
             Dash => "dash",
             Ethereum => "eth",
+            EthereumClassic => "etc",
             Litecoin => "ltc",
             BitcoinCashTestnet => "tbch",
             BitcoinTestnet => "tbtc",
@@ -158,6 +159,7 @@ impl super::StaticSource for BitGo {
         BitcoinGold,
         BitcoinSV,
         Ethereum,
+        EthereumClassic,
         Ripple,
         Stellar,
         Eos,
