@@ -40,9 +40,6 @@ mod util;
 
 use opts::Opts;
 
-type SourceName = &'static str;
-type ChainName = &'static str;
-
 type ChainHeight = u64;
 type BlockHash = String;
 
@@ -51,6 +48,7 @@ pub fn get_now_ts() -> u64 {
 }
 
 #[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ChainStateTs {
     first_seen_ts: u64,
     last_checked_ts: u64,
@@ -112,6 +110,7 @@ impl ChainStateUpdateTs {
 }
 
 #[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct WSChainStateUpdateTs {
     source: SourceId,
     chain: ChainId,
@@ -120,14 +119,30 @@ pub struct WSChainStateUpdateTs {
     height: ChainHeight,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
+pub struct SourceInfo {
+    id: SourceId,
+    url: String,
+    short_name: &'static str,
+    full_name: &'static str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
+pub struct ChainInfo {
+    id: ChainId,
+    short_name: &'static str,
+    full_name: &'static str,
+    block_time_secs: u32,
+}
+
 // Our shared state
 pub struct AppState {
-    all_sources_names: Vec<SourceName>,
-    all_sources_full_names: Vec<SourceName>,
-    all_sources: Vec<SourceId>,
-    all_chains_names: Vec<ChainName>,
-    all_chains: Vec<ChainId>,
-    all_chains_full_names: Vec<SourceName>,
+    sources: Vec<SourceInfo>,
+    chains: Vec<ChainInfo>,
     chain_states: Mutex<HashMap<(SourceId, ChainId), ChainStateTs>>,
     tx: broadcast::Sender<ChainStateUpdateTs>,
 }
@@ -151,12 +166,21 @@ impl AppState {
     }
 
     pub fn add_source(&mut self, source: SourceId) {
-        match self.all_sources.binary_search(&source) {
+        match self
+            .sources
+            .binary_search_by_key(&source, |source_info| source_info.id)
+        {
             Ok(_pos) => {}
             Err(pos) => {
-                self.all_sources.insert(pos, source);
-                self.all_sources_names.insert(pos, source.into());
-                self.all_sources_full_names.insert(pos, source.full_name());
+                self.sources.insert(
+                    pos,
+                    SourceInfo {
+                        id: source,
+                        url: "tbd".into(),
+                        short_name: source.short_name(),
+                        full_name: source.full_name(),
+                    },
+                );
             }
         }
     }
@@ -169,12 +193,21 @@ impl AppState {
     pub fn add_chain(&mut self, chain: ChainId) {
         let chain = chain.into();
 
-        match self.all_chains.binary_search(&chain) {
+        match self
+            .chains
+            .binary_search_by_key(&chain, |source_info| source_info.id)
+        {
             Ok(_pos) => {}
             Err(pos) => {
-                self.all_chains.insert(pos, chain);
-                self.all_chains_names.insert(pos, chain.into());
-                self.all_chains_full_names.insert(pos, chain.full_name());
+                self.chains.insert(
+                    pos,
+                    ChainInfo {
+                        id: chain,
+                        block_time_secs: chain.block_time_secs(),
+                        short_name: chain.short_name(),
+                        full_name: chain.full_name(),
+                    },
+                );
             }
         }
     }
@@ -187,12 +220,8 @@ impl AppState {
     fn new() -> AppState {
         let (tx, _rx) = tokio::sync::broadcast::channel(1000);
         AppState {
-            all_chains_names: Default::default(),
-            all_chains_full_names: Default::default(),
-            all_sources_names: Default::default(),
-            all_sources_full_names: Default::default(),
-            all_chains: Default::default(),
-            all_sources: Default::default(),
+            sources: Default::default(),
+            chains: Default::default(),
             chain_states: Mutex::new(HashMap::new()),
             tx,
         }
@@ -250,13 +279,11 @@ type SharedAppState = Arc<AppState>;
 
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
-enum WSMessage {
+enum WSMessage<'a> {
     #[serde(rename_all = "camelCase")]
     Init {
-        sources: Vec<&'static str>,
-        sources_full_name: Vec<&'static str>,
-        chains: Vec<&'static str>,
-        chains_full_name: Vec<&'static str>,
+        sources: &'a [SourceInfo],
+        chains: &'a [ChainInfo],
     },
     Update(WSChainStateUpdateTs),
 }
@@ -376,10 +403,8 @@ async fn handle_socket_try(socket: WebSocket, app_state: SharedAppState) -> Resu
     // send all sources & chains info
     sender
         .send(Message::Text(serde_json::to_string(&WSMessage::Init {
-            sources: app_state.all_sources_names.clone(),
-            sources_full_name: app_state.all_sources_full_names.clone(),
-            chains: app_state.all_chains_names.clone(),
-            chains_full_name: app_state.all_chains_full_names.clone(),
+            sources: &app_state.sources,
+            chains: &app_state.chains,
         })?))
         .await?;
 

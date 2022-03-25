@@ -22,13 +22,13 @@ function playSound() {
 }
 
 class ChainsState {
-  constructor(sources, sourcesFullName, chains, chainsFullName) {
+  constructor(sources, chains) {
     this.sources = sources;
-    this.sourcesFullName = sourcesFullName;
     this.chains = chains;
-    this.chainsFullName = chainsFullName;
     this.states = [];
     this.bestHeight = Array(chains.length).fill(0);
+    // max time between the source updates that backend can guarantee
+    this.MAX_BACKEND_SOURCE_CHECK_PERIOD_SECS = 60;
     this.loadEnableSoundFor();
   }
 
@@ -79,8 +79,8 @@ class ChainsState {
 
   getIdxByIds(source, chain) {
     return this.getIdx(
-      this.sources.findIndex((element) => element === source),
-      this.chains.findIndex((element) => element === chain)
+      this.sources.findIndex((element) => element.id === source),
+      this.chains.findIndex((element) => element.id === chain)
     );
   }
 
@@ -89,7 +89,7 @@ class ChainsState {
   }
 
   getChainIdx(chain) {
-    return this.chains.findIndex((element) => element === chain);
+    return this.chains.findIndex((element) => element.id === chain);
   }
 
   addSoundToggleToElement (element, source, chain) {
@@ -142,11 +142,11 @@ class ChainsState {
         const th = document.createElement('th');
         const div = document.createElement('div');
         div.setAttribute('scope', 'col');
-        div.appendChild(document.createTextNode(this.sources[sourceIdx]));
+        div.appendChild(document.createTextNode(this.sources[sourceIdx].shortName));
         div.classList.add('tooltip');
 
         const span = document.createElement('span');
-        span.appendChild(document.createTextNode(this.sourcesFullName[sourceIdx]));
+        span.appendChild(document.createTextNode(this.sources[sourceIdx].fullName));
         span.classList.add('tooltiptext');
 
         div.appendChild(span);
@@ -169,7 +169,7 @@ class ChainsState {
       {
         const th = document.createElement('td');
         th.setAttribute('scope', 'row');
-        th.appendChild(document.createTextNode(this.chainsFullName[chainIdx]));
+        th.appendChild(document.createTextNode(this.chains[chainIdx].fullName));
         tr.appendChild(th);
       }
 
@@ -188,8 +188,8 @@ class ChainsState {
         tr.appendChild(td);
 
         if (chainState) {
-          td.classList.add(`sound-${this.getEnableSoundFor(source, chain) ? 'enabled' : 'disabled' }`)
-          this.addSoundToggleToElement(td, source, chain);
+          td.classList.add(`sound-${this.getEnableSoundFor(source.id, chain.id) ? 'enabled' : 'disabled' }`)
+          this.addSoundToggleToElement(td, source.id, chain.id);
         }
         const div = document.createElement('div');
         td.appendChild(div);
@@ -205,25 +205,25 @@ class ChainsState {
           span.innerHTML += '&nbsp;';
           span.appendChild(document.createTextNode(`${chainState.hash}`));
           span.appendChild(document.createElement('br'));
-          span.appendChild(document.createTextNode(`first_seen: ${new Date(1000 * chainState.first_seen_ts).toISOString()}`));
+          span.appendChild(document.createTextNode(`first seen: ${new Date(1000 * chainState.firstSeenTs).toISOString()}`));
           span.classList.add('tooltiptext');
 
           const diff = chainState.height - bestHeight;
+          const nowTs = new Date().getTime() / 1000;
+          const stalenessSecs = nowTs - chainState.firstSeenTs;
+
           if (diff >= -1) {
             td.classList.add('at-chainhead');
           } else {
             td.classList.add('not-at-chainhead');
           }
 
-          const nowTs = new Date().getTime() / 1000;
-          const stalenessSecs = nowTs  - chainState.first_seen_ts;
           if (stalenessSecs < 25) {
             td.classList.add('just-increased');
           }
-          // const lastUpdateSecs = nowTs - chainState.last_checked_ts;
-          // if (lastUpdateSecs > 60) {
-          //   td.classList.add('stale');
-          // }
+          if (stalenessSecs > Math.max(chain.blockTimeSecs * 3, this.MAX_BACKEND_SOURCE_CHECK_PERIOD_SECS)) {
+            td.classList.add('stale');
+          }
 
           const diffSpan = document.createElement('span');
           div.appendChild(diffSpan);
@@ -273,7 +273,7 @@ class App {
       app.reconnectCount = 0;
 
       if (msg.type === 'init') {
-        app.chains = new ChainsState(msg.sources, msg.sourcesFullName, msg.chains, msg.chainsFullName);
+        app.chains = new ChainsState(msg.sources, msg.chains);
         app.redraw();
       } else if (msg.type === 'update') {
         app.chains.update(msg.source, msg.chain, msg);
