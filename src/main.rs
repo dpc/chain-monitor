@@ -17,6 +17,7 @@ use metrics::gauge;
 use serde::Serialize;
 use source::{ChainId, Source, SourceId};
 use std::{
+    cmp,
     collections::{hash_map::Entry::*, HashMap},
     future::ready,
     net::SocketAddr,
@@ -31,6 +32,7 @@ use tower_http::{
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
 };
+use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod opts;
@@ -139,11 +141,17 @@ pub struct ChainInfo {
     block_time_secs: u32,
 }
 
+#[derive(Default)]
+pub struct ChainStates {
+    states: HashMap<(SourceId, ChainId), ChainStateTs>,
+    best_height: HashMap<ChainId, ChainHeight>,
+}
+
 // Our shared state
 pub struct AppState {
     sources: Vec<SourceInfo>,
     chains: Vec<ChainInfo>,
-    chain_states: Mutex<HashMap<(SourceId, ChainId), ChainStateTs>>,
+    chain_states: Mutex<ChainStates>,
     tx: broadcast::Sender<ChainStateUpdateTs>,
 }
 
@@ -152,6 +160,7 @@ impl AppState {
         self.chain_states
             .lock()
             .await
+            .states
             .iter()
             .map(|(k, v)| ChainStateUpdateTs {
                 source: k.0.clone(),
@@ -222,7 +231,7 @@ impl AppState {
         AppState {
             sources: Default::default(),
             chains: Default::default(),
-            chain_states: Mutex::new(HashMap::new()),
+            chain_states: Mutex::new(ChainStates::default()),
             tx,
         }
     }
@@ -231,11 +240,17 @@ impl AppState {
 #[async_trait]
 pub trait ChainUpdateRecorder: Sync {
     async fn update(&self, update: ChainStateUpdate);
+    async fn how_far_behind(&self, source: SourceId, chain: ChainId) -> ChainHeight;
 }
 
 #[async_trait]
 impl ChainUpdateRecorder for AppState {
     async fn update(&self, update: ChainStateUpdate) {
+        debug!(
+            "{:?} {:?} update: {}",
+            update.source, update.chain, update.state.height
+        );
+
         gauge!(
             "chain_monitor_chain_height",
             update.state.height as f64,
@@ -244,14 +259,17 @@ impl ChainUpdateRecorder for AppState {
             "sources_full_name" => update.source.full_name(),
             "chain_full_name" => update.chain.full_name(),
         );
+
         let (broadcast_update, state_ts) = {
             let state_ts = update.state.to_state_ts();
-            match self
-                .chain_states
-                .lock()
-                .await
-                .entry((update.source, update.chain))
+            let mut chain_states = self.chain_states.lock().await;
+
             {
+                let best_height = chain_states.best_height.entry(update.chain).or_insert(0);
+                *best_height = cmp::max(*best_height, state_ts.state.height);
+            }
+
+            match chain_states.states.entry((update.source, update.chain)) {
                 Occupied(mut e) => {
                     let old_state = e.get().clone();
                     let new_state = old_state.update_by(state_ts);
@@ -272,6 +290,18 @@ impl ChainUpdateRecorder for AppState {
                 state: state_ts,
             });
         }
+    }
+    async fn how_far_behind(&self, source: SourceId, chain: ChainId) -> ChainHeight {
+        let chain_states = self.chain_states.lock().await;
+
+        let cur_height = chain_states
+            .states
+            .get(&(source, chain))
+            .map(|s| s.state.height)
+            .unwrap_or(0);
+        let cur_best_height = chain_states.best_height.get(&chain).cloned().unwrap_or(0);
+
+        cur_best_height - cur_height
     }
 }
 
@@ -487,6 +517,6 @@ async fn main() -> Result<()> {
         if let Err(e) = timeout(Duration::from_secs(30), source.check_updates(&*app_state)).await {
             tracing::warn!("Timeout waiting for updates: {e}");
         }
-        tokio::time::sleep(Duration::from_secs(30)).await;
+        tokio::time::sleep(Duration::from_secs(15)).await;
     }
 }

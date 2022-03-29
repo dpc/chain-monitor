@@ -54,6 +54,7 @@ async fn get_updates(
 
 pub struct BitGo {
     client: reqwest::Client,
+    rate_limiter: super::UpdateRateLimiter,
 }
 
 impl BitGo {
@@ -62,6 +63,7 @@ impl BitGo {
             client: reqwest::Client::builder()
                 .user_agent("curl/7.79.1")
                 .build()?,
+            rate_limiter: super::UpdateRateLimiter::new(<Self as super::StaticSource>::ID),
         })
     }
 
@@ -195,15 +197,17 @@ impl super::StaticSource for BitGo {
         supported_chains.shuffle(&mut thread_rng());
 
         for chain_id in supported_chains {
-            if let Some(update) = get_updates(
-                &self.client,
-                chain_id,
-                Self::host_for_chain(chain_id),
-                Self::coin_symbol_for_chain(chain_id),
-            )
-            .await
-            {
-                recorder.update(update).await;
+            if self.rate_limiter.should_check(chain_id, recorder).await {
+                if let Some(update) = get_updates(
+                    &self.client,
+                    chain_id,
+                    Self::host_for_chain(chain_id),
+                    Self::coin_symbol_for_chain(chain_id),
+                )
+                .await
+                {
+                    recorder.update(update).await;
+                }
             }
         }
     }

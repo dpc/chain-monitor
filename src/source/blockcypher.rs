@@ -50,6 +50,7 @@ async fn get_updates(
 
 pub struct BlockCypher {
     client: reqwest::Client,
+    rate_limiter: super::UpdateRateLimiter,
 }
 
 impl BlockCypher {
@@ -58,6 +59,9 @@ impl BlockCypher {
             client: reqwest::Client::builder()
                 .user_agent("curl/7.79.1")
                 .build()?,
+            rate_limiter: super::UpdateRateLimiter::new(<Self as super::StaticSource>::ID)
+                // tight rate limits
+                .disable_periodic_check(),
         })
     }
 
@@ -85,14 +89,16 @@ impl super::StaticSource for BlockCypher {
         supported_chains.shuffle(&mut thread_rng());
 
         for chain_id in supported_chains {
-            if let Some(update) = get_updates(
-                &self.client,
-                chain_id,
-                Self::coin_symbol_for_chain(chain_id),
-            )
-            .await
-            {
-                recorder.update(update).await;
+            if self.rate_limiter.should_check(chain_id, recorder).await {
+                if let Some(update) = get_updates(
+                    &self.client,
+                    chain_id,
+                    Self::coin_symbol_for_chain(chain_id),
+                )
+                .await
+                {
+                    recorder.update(update).await;
+                }
             }
         }
     }

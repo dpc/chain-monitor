@@ -3,8 +3,13 @@ use anyhow::Result;
 use axum::async_trait;
 use futures::future::join_all;
 use serde::Serialize;
-use std::collections::HashSet;
+use std::{
+    cmp,
+    collections::{HashMap, HashSet},
+};
 use strum::IntoStaticStr;
+use tokio::sync::Mutex;
+use tracing::debug;
 mod bitgo;
 mod blockchain;
 mod blockchair;
@@ -237,5 +242,69 @@ impl Source for Vec<Box<dyn Source>> {
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
         join_all(self.iter().map(|source| source.check_updates(recorder))).await;
+    }
+}
+
+struct UpdateRateLimiter {
+    source: SourceId,
+    last_checked: Mutex<HashMap<ChainId, u64>>,
+    enable_periodic_check: bool,
+}
+
+impl UpdateRateLimiter {
+    fn new(source: SourceId) -> Self {
+        Self {
+            source,
+            last_checked: Mutex::new(HashMap::default()),
+            enable_periodic_check: true,
+        }
+    }
+
+    pub fn disable_periodic_check(self) -> Self {
+        Self {
+            enable_periodic_check: false,
+            ..self
+        }
+    }
+
+    async fn should_check(
+        &self,
+        chain: ChainId,
+        update_recorder: &dyn ChainUpdateRecorder,
+    ) -> bool {
+        let now = super::get_now_ts();
+        let mut last_checked = self.last_checked.lock().await;
+
+        let since_last_check_secs = now - *last_checked.entry(chain).or_insert(0);
+        let recheck_threashold_secs = cmp::max(u64::from(chain.block_time_secs()) / 2, 45);
+        let how_far_behind = update_recorder.how_far_behind(self.source, chain).await;
+
+        let is_behind = if how_far_behind > 0 {
+            debug!(
+                "{:?} {:?} is {} behind; updating",
+                self.source, chain, how_far_behind
+            );
+            true
+        } else {
+            false
+        };
+
+        let is_stale =
+            if (since_last_check_secs > recheck_threashold_secs) && self.enable_periodic_check {
+                debug!(
+                    "{:?} {:?} is {}s since last updated; updating",
+                    self.source, chain, since_last_check_secs
+                );
+                true
+            } else {
+                false
+            };
+
+        if is_behind || is_stale {
+            last_checked.insert(chain, now);
+            true
+        } else {
+            false
+        }
     }
 }
