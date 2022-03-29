@@ -196,7 +196,12 @@ class ChainsState {
         div.classList.add('tooltip');
 
         if (chainState) {
+          const diff = chainState.height - bestHeight;
+          const nowTs = new Date().getTime() / 1000;
+          const stalenessSecs = Math.round(nowTs - chainState.firstSeenTs);
+
           const span = document.createElement('span');
+          const secsAgo = chainState.firstSeenTs
           div.appendChild(span);
           this.addStopOnClickPropagationToElement(span);
           span.appendChild(document.createTextNode(`height: ${chainState.height}`));
@@ -205,12 +210,8 @@ class ChainsState {
           span.innerHTML += '&nbsp;';
           span.appendChild(document.createTextNode(`${chainState.hash}`));
           span.appendChild(document.createElement('br'));
-          span.appendChild(document.createTextNode(`first seen: ${new Date(1000 * chainState.firstSeenTs).toISOString()}`));
+          span.appendChild(document.createTextNode(`first seen: ${new Date(1000 * chainState.firstSeenTs).toISOString()} (${stalenessSecs}s ago)`));
           span.classList.add('tooltiptext');
-
-          const diff = chainState.height - bestHeight;
-          const nowTs = new Date().getTime() / 1000;
-          const stalenessSecs = nowTs - chainState.firstSeenTs;
 
           if (diff >= -1) {
             td.classList.add('at-chainhead');
