@@ -29,6 +29,17 @@ body {
   font-family: Verdana, sans-serif;
 }
 
+html {
+  display: table;
+  margin: auto;
+}
+
+body {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+
 table {
   border: 3pt;
 }
