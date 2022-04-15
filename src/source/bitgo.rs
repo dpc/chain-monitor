@@ -108,7 +108,7 @@ impl BitGo {
             BitcoinCashTestnet => "tbch",
             BitcoinTestnet => "tbtc",
             BitcoinSignet => unreachable!(),
-            EthereumGoerliTestnet => "teth",
+            EthereumGoerliTestnet => "gteth",
             LitecoinTestnet => "tltc",
             DashTestnet => "tdash",
             BitcoinSV => "bsv",
