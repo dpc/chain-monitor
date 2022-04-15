@@ -108,6 +108,7 @@ table td.stale {
 /* Tooltip text */
 .tooltip .tooltiptext {
   visibility: hidden;
+  display: none; /* otherwise it adds to size of the table :shrug: */
   min-width: 150px;
   background-color: black;
   color: #fff;
@@ -123,4 +124,5 @@ table td.stale {
 /* Show the tooltip text when you mouse over the tooltip container */
 .tooltip:hover .tooltiptext {
   visibility: visible;
+  display: inline;;
 }
