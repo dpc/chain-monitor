@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::{ChainId, ChainId::*, SourceId};
 use crate::{ChainState, ChainStateUpdate, ChainUpdateRecorder};
 use anyhow::Result;
@@ -13,13 +15,16 @@ struct BlockLatestBody {
 
 pub(crate) async fn get_chain_state(
     client: &reqwest::Client,
+    api: BitgoAPI,
     host: &str,
     chain_api_symbol: &str,
 ) -> Result<ChainState> {
+    let path = match api {
+        BitgoAPI::V1 => format!("/api/{api}/block/latest"),
+        BitgoAPI::V2 => format!("/api/{api}/{chain_api_symbol}/public/block/latest"),
+    };
     let resp = client
-        .get(format!(
-            "https://{host}/api/v2/{chain_api_symbol}/public/block/latest"
-        ))
+        .get(format!("https://{host}{path}"))
         .send()
         .await?
         .error_for_status()?
@@ -32,15 +37,19 @@ pub(crate) async fn get_chain_state(
     })
 }
 
-async fn get_updates(
+pub async fn get_updates(
     client: &reqwest::Client,
     chain: ChainId,
+    api: BitgoAPI,
     host: &str,
     chain_api_symbol: &str,
 ) -> Option<ChainStateUpdate> {
-    match get_chain_state(client, host, chain_api_symbol).await {
+    match get_chain_state(client, api, host, chain_api_symbol).await {
         Ok(state) => Some(ChainStateUpdate {
-            source: SourceId::BitGo,
+            source: match api {
+                BitgoAPI::V1 => SourceId::BitGoV1,
+                BitgoAPI::V2 => SourceId::BitGo,
+            },
             chain: chain.into(),
             state,
         }),
@@ -52,6 +61,21 @@ async fn get_updates(
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum BitgoAPI {
+    V1,
+    V2,
+}
+
+impl Display for BitgoAPI {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use BitgoAPI::*;
+        f.write_str(match self {
+            V1 => "v1",
+            V2 => "v2",
+        })
+    }
+}
 pub struct BitGo {
     client: reqwest::Client,
     rate_limiter: super::UpdateRateLimiter,
@@ -201,6 +225,7 @@ impl super::StaticSource for BitGo {
                 if let Some(update) = get_updates(
                     &self.client,
                     chain_id,
+                    BitgoAPI::V2,
                     Self::host_for_chain(chain_id),
                     Self::coin_symbol_for_chain(chain_id),
                 )

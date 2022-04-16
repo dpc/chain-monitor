@@ -12,6 +12,7 @@ use strum::IntoStaticStr;
 use tokio::sync::Mutex;
 use tracing::debug;
 mod bitgo;
+mod bitgov1;
 mod blockchain;
 mod blockchair;
 mod blockcypher;
@@ -63,12 +64,14 @@ pub enum SourceId {
     BlockCypher,
     CMC,
     MempoolSpace,
+    BitGoV1,
 }
 
 impl SourceId {
     pub fn full_name(self) -> &'static str {
         match self {
             SourceId::BitGo => "BitGo",
+            SourceId::BitGoV1 => "BitGo (v1)",
             SourceId::Blockchain => "Blockchain.com",
             SourceId::Blockchair => "Blockchair",
             SourceId::BlockCypher => "BlockCypher",
@@ -339,6 +342,7 @@ impl ChainId {
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
     Ok(vec![
         Box::new(bitgo::BitGo::new()?),
+        Box::new(bitgov1::BitGoV1::new()?),
         Box::new(blockchain::Blockchain::new()?),
         Box::new(blockchair::Blockchair::new()?),
         Box::new(blockcypher::BlockCypher::new()?),
