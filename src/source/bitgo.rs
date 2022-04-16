@@ -95,7 +95,7 @@ impl BitGo {
         match chain {
             Bitcoin | BitcoinCash | Litecoin | Ethereum | Dash | Polkadot | BitcoinGold
             | BitcoinSV | Solana | Ripple | Stellar | ZCash | Eos | Avalanche | Algorand | Celo
-            | Casper | RSK | Stacks | Tezos | EthereumClassic => "bitgo.com",
+            | Casper | RSK | Stacks | Tezos | EthereumClassic | HederaHashgraph => "bitgo.com",
             BitcoinTestnet
             | BitcoinCashTestnet
             | LitecoinTestnet
@@ -112,6 +112,7 @@ impl BitGo {
             | CasperTestnet
             | RSKTestnet
             | StacksTestnet
+            | HederaHashgraphTestnet
             | TezosTestnet => "test.bitgo.com",
             Doge | Cardano | Monero | Kusama | ECash | Mixin | Groestlcoin | BinanceCoin
             | BitcoinSignet => {
@@ -133,6 +134,8 @@ impl BitGo {
             BitcoinTestnet => "tbtc",
             BitcoinSignet => unreachable!(),
             EthereumGoerliTestnet => "gteth",
+            HederaHashgraph => "hbar",
+            HederaHashgraphTestnet => "thbar",
             LitecoinTestnet => "tltc",
             DashTestnet => "tdash",
             BitcoinSV => "bsv",
@@ -188,6 +191,7 @@ impl super::StaticSource for BitGo {
         EthereumClassic,
         Ripple,
         Stellar,
+        HederaHashgraph,
         Eos,
         Avalanche,
         Algorand,
@@ -203,6 +207,7 @@ impl super::StaticSource for BitGo {
         ZCashTestnet,
         BitcoinSVTestnet,
         EthereumGoerliTestnet,
+        HederaHashgraphTestnet,
         RippleTestnet,
         StellarTestnet,
         EosTestnet,
