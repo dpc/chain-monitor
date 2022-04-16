@@ -254,9 +254,11 @@ impl ChainUpdateRecorder for AppState {
         gauge!(
             "chain_monitor_chain_height",
             update.state.height as f64,
-            "source" => update.source.short_name(),
-            "chain" => update.chain.short_name(),
-            "sources_full_name" => update.source.full_name(),
+            "source" => update.source.short_name().to_lowercase(),
+            "chain" => update.chain.short_name().to_lowercase(),
+            "ticker" => update.chain.ticker(),
+            "network_type" => update.chain.network_type().to_string(),
+            "source_full_name" => update.source.full_name(),
             "chain_full_name" => update.chain.full_name(),
         );
 

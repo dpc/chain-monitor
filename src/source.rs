@@ -6,6 +6,7 @@ use serde::Serialize;
 use std::{
     cmp,
     collections::{HashMap, HashSet},
+    fmt::Display,
 };
 use strum::IntoStaticStr;
 use tokio::sync::Mutex;
@@ -77,6 +78,23 @@ impl SourceId {
     }
     pub fn short_name(self) -> &'static str {
         self.into()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum NetworkType {
+    Mainnet,
+    Testnet,
+    Signet,
+}
+
+impl Display for NetworkType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            NetworkType::Mainnet => "mainnet",
+            NetworkType::Testnet => "testnet",
+            NetworkType::Signet => "signet",
+        })
     }
 }
 
@@ -212,7 +230,112 @@ impl ChainId {
     pub fn short_name(self) -> &'static str {
         self.into()
     }
+
+    pub fn ticker(self) -> &'static str {
+        match self {
+            ChainId::Algorand => "algo",
+            ChainId::Avalanche => "avax",
+            ChainId::BinanceCoin => "bnb",
+            ChainId::Bitcoin => "btc",
+            ChainId::BitcoinCash => "bch",
+            ChainId::BitcoinGold => "btg",
+            ChainId::BitcoinSV => "bsv",
+            ChainId::Cardano => "ada",
+            ChainId::Casper => "cspr",
+            ChainId::Celo => "celo",
+            ChainId::Dash => "dash",
+            ChainId::Doge => "doge",
+            ChainId::ECash => "xec",
+            ChainId::Eos => "eos",
+            ChainId::Ethereum => "eth",
+            ChainId::EthereumClassic => "etc",
+            ChainId::Groestlcoin => "grs",
+            ChainId::Kusama => "ksm",
+            ChainId::Litecoin => "ltc",
+            ChainId::Mixin => "xin",
+            ChainId::Monero => "mnr",
+            ChainId::Polkadot => "dot",
+            ChainId::Ripple => "xrp",
+            ChainId::RSK => "rbtc",
+            ChainId::Solana => "sol",
+            ChainId::Stacks => "stx",
+            ChainId::Stellar => "xlm",
+            ChainId::Tezos => "xtz",
+            ChainId::ZCash => "zec",
+            ChainId::AlgorandTestnet => "algo-testnet",
+            ChainId::BitcoinCashTestnet => "bch-testnet",
+            ChainId::BitcoinSVTestnet => "bsv-testnet",
+            ChainId::BitcoinTestnet => "btc-testnet",
+            ChainId::CasperTestnet => "cspr-testnet",
+            ChainId::CeloTestnet => "celo-testnet",
+            ChainId::DashTestnet => "dash-testnet",
+            ChainId::EosTestnet => "eos-testnet",
+            ChainId::EthereumGoerliTestnet => "eth-testnet",
+            ChainId::LitecoinTestnet => "ltc-testnet",
+            ChainId::RippleTestnet => "xrp-testnet",
+            ChainId::RSKTestnet => "rbtc-testnet",
+            ChainId::SolanaTestnet => "sol-testnet",
+            ChainId::StacksTestnet => "stx-testnet",
+            ChainId::StellarTestnet => "xlm-testnet",
+            ChainId::TezosTestnet => "xtz-testnet",
+            ChainId::ZCashTestnet => "zec-testnet",
+            ChainId::BitcoinSignet => "btc-signet",
+        }
+    }
+
+    pub fn network_type(self) -> NetworkType {
+        match self {
+            ChainId::Algorand => NetworkType::Mainnet,
+            ChainId::Avalanche => NetworkType::Mainnet,
+            ChainId::BinanceCoin => NetworkType::Mainnet,
+            ChainId::Bitcoin => NetworkType::Mainnet,
+            ChainId::BitcoinCash => NetworkType::Mainnet,
+            ChainId::BitcoinGold => NetworkType::Mainnet,
+            ChainId::BitcoinSV => NetworkType::Mainnet,
+            ChainId::Cardano => NetworkType::Mainnet,
+            ChainId::Casper => NetworkType::Mainnet,
+            ChainId::Celo => NetworkType::Mainnet,
+            ChainId::Dash => NetworkType::Mainnet,
+            ChainId::Doge => NetworkType::Mainnet,
+            ChainId::ECash => NetworkType::Mainnet,
+            ChainId::Eos => NetworkType::Mainnet,
+            ChainId::Ethereum => NetworkType::Mainnet,
+            ChainId::EthereumClassic => NetworkType::Mainnet,
+            ChainId::Groestlcoin => NetworkType::Mainnet,
+            ChainId::Kusama => NetworkType::Mainnet,
+            ChainId::Litecoin => NetworkType::Mainnet,
+            ChainId::Mixin => NetworkType::Mainnet,
+            ChainId::Monero => NetworkType::Mainnet,
+            ChainId::Polkadot => NetworkType::Mainnet,
+            ChainId::Ripple => NetworkType::Mainnet,
+            ChainId::RSK => NetworkType::Mainnet,
+            ChainId::Solana => NetworkType::Mainnet,
+            ChainId::Stacks => NetworkType::Mainnet,
+            ChainId::Stellar => NetworkType::Mainnet,
+            ChainId::Tezos => NetworkType::Mainnet,
+            ChainId::ZCash => NetworkType::Mainnet,
+            ChainId::AlgorandTestnet => NetworkType::Testnet,
+            ChainId::BitcoinCashTestnet => NetworkType::Testnet,
+            ChainId::BitcoinSVTestnet => NetworkType::Testnet,
+            ChainId::BitcoinTestnet => NetworkType::Testnet,
+            ChainId::CasperTestnet => NetworkType::Testnet,
+            ChainId::CeloTestnet => NetworkType::Testnet,
+            ChainId::DashTestnet => NetworkType::Testnet,
+            ChainId::EosTestnet => NetworkType::Testnet,
+            ChainId::EthereumGoerliTestnet => NetworkType::Testnet,
+            ChainId::LitecoinTestnet => NetworkType::Testnet,
+            ChainId::RippleTestnet => NetworkType::Testnet,
+            ChainId::RSKTestnet => NetworkType::Testnet,
+            ChainId::SolanaTestnet => NetworkType::Testnet,
+            ChainId::StacksTestnet => NetworkType::Testnet,
+            ChainId::StellarTestnet => NetworkType::Testnet,
+            ChainId::TezosTestnet => NetworkType::Testnet,
+            ChainId::ZCashTestnet => NetworkType::Testnet,
+            ChainId::BitcoinSignet => NetworkType::Signet,
+        }
+    }
 }
+
 pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
     Ok(vec![
         Box::new(bitgo::BitGo::new()?),
