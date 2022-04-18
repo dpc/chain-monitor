@@ -1,5 +1,5 @@
 use super::{ChainId, ChainId::*, SourceId};
-use crate::{ChainUpdateRecorder};
+use crate::ChainUpdateRecorder;
 use anyhow::Result;
 use axum::async_trait;
 use rand::{seq::SliceRandom, thread_rng};
@@ -22,6 +22,7 @@ impl BitGoV1 {
     fn host_for_chain(chain: ChainId) -> &'static str {
         match chain {
             Bitcoin => "bitgo.com",
+            BitcoinTestnet => "bitgo-test.com",
             _ => {
                 unreachable!()
             }
@@ -31,6 +32,7 @@ impl BitGoV1 {
     fn coin_symbol_for_chain(chain: ChainId) -> &'static str {
         match chain {
             Bitcoin => "btc",
+            BitcoinTestnet => "tbtc",
             _ => unreachable!(),
         }
     }
@@ -39,7 +41,7 @@ impl BitGoV1 {
 #[async_trait]
 impl super::StaticSource for BitGoV1 {
     const ID: SourceId = SourceId::BitGoV1;
-    const SUPPORTED_CHAINS: &'static [ChainId] = &[Bitcoin];
+    const SUPPORTED_CHAINS: &'static [ChainId] = &[Bitcoin, BitcoinTestnet];
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
         // randomize the order to give all chains a chance, even in the presence
