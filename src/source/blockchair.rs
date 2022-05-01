@@ -41,6 +41,8 @@ struct HomepageEnCoinData {
     best_block_height: Option<u64>,
     #[serde(alias = "best_ledger_hash", alias = "best_snapshot_hash")]
     best_block_hash: Option<String>,
+
+    best_slot_absolute: Option<u64>,
 }
 
 async fn get_homepage_en(client: &reqwest::Client) -> Result<HomepageEnBody> {
@@ -128,30 +130,53 @@ impl super::StaticSource for Blockchair {
 
                     if let Some(data) = data.get(symbol) {
                         if let Some(data) = data.data.as_ref() {
-                            if let Some(height) = data.best_block_height {
-                                recorder
-                                    .update(ChainStateUpdate {
-                                        source: Blockchair,
-                                        chain: chain,
-                                        state: ChainState {
-                                            hash: data
-                                                .best_block_hash
-                                                .clone()
-                                                .unwrap_or_else(|| height.to_string()),
-                                            height,
-                                        },
-                                    })
-                                    .await;
+                            if chain == ChainId::Solana || chain == ChainId::SolanaTestnet {
+                                // report slots instead of block height for Solana
+                                if let Some(height) = data.best_slot_absolute {
+                                    recorder
+                                        .update(ChainStateUpdate {
+                                            source: Blockchair,
+                                            chain: chain,
+                                            state: ChainState {
+                                                hash: data
+                                                    .best_block_hash
+                                                    .clone()
+                                                    .unwrap_or_else(|| height.to_string()),
+                                                height,
+                                            },
+                                        })
+                                        .await;
+                                } else {
+                                    tracing::warn!(
+                                        "Missing chain data for blockchair coin data: {symbol}"
+                                    );
+                                }
                             } else {
-                                tracing::warn!(
-                                    "Missing chain data for blockchair coin data:: {symbol}"
-                                );
+                                if let Some(height) = data.best_block_height {
+                                    recorder
+                                        .update(ChainStateUpdate {
+                                            source: Blockchair,
+                                            chain: chain,
+                                            state: ChainState {
+                                                hash: data
+                                                    .best_block_hash
+                                                    .clone()
+                                                    .unwrap_or_else(|| height.to_string()),
+                                                height,
+                                            },
+                                        })
+                                        .await;
+                                } else {
+                                    tracing::warn!(
+                                        "Missing chain data for blockchair coin data: {symbol}"
+                                    );
+                                }
                             }
                         } else {
-                            tracing::warn!("Malformed data for blockchair coin data:: {symbol}");
+                            tracing::warn!("Malformed data for blockchair coin data: {symbol}");
                         }
                     } else {
-                        tracing::warn!("Couldn't find blockchair coin data:: {symbol}");
+                        tracing::warn!("Couldn't find blockchair coin data: {symbol}");
                     }
                 }
             }
