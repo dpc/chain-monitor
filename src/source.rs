@@ -1,4 +1,4 @@
-use crate::ChainUpdateRecorder;
+use crate::{opts::Opts, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
 use futures::future::join_all;
@@ -18,6 +18,7 @@ mod blockchain;
 mod blockchair;
 mod blockcypher;
 mod cmc;
+mod getblock;
 mod mempoolspace;
 mod other;
 
@@ -66,6 +67,7 @@ pub enum SourceId {
     BlockCypher,
     CMC,
     MempoolSpace,
+    GetBlock,
     BitGoV1,
     Other,
 }
@@ -80,6 +82,7 @@ impl SourceId {
             SourceId::BlockCypher => "BlockCypher",
             SourceId::MempoolSpace => "mempool.space",
             SourceId::CMC => "CoinMarketCap",
+            SourceId::GetBlock => "GetBlock.io",
             SourceId::Other => "Other",
         }
     }
@@ -351,9 +354,9 @@ impl ChainId {
     }
 }
 
-pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
-    Ok(vec![
-        Box::new(bitgo::BitGo::new()?),
+pub(crate) fn get_source(opts: &Opts) -> Result<Vec<Box<dyn Source>>> {
+    let mut sources = vec![
+        Box::new(bitgo::BitGo::new()?) as Box<dyn Source>,
         Box::new(bitgov1::BitGoV1::new()?),
         Box::new(blockchain::Blockchain::new()?),
         Box::new(blockchair::Blockchair::new()?),
@@ -361,7 +364,12 @@ pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
         Box::new(mempoolspace::MempoolSpace::new()?),
         Box::new(cmc::CoinMarketCap::new()?),
         Box::new(other::Other::new()?),
-    ])
+    ];
+
+    if let Some(api) = opts.getblock_api_key.as_ref() {
+        sources.push(Box::new(getblock::GetBlock::new(api.to_owned())?));
+    }
+    Ok(sources)
 }
 
 #[async_trait]

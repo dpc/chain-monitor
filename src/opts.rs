@@ -18,6 +18,10 @@ pub struct Opts {
 
     #[clap(long = "enable-prometheus")]
     pub enable_prometheus: bool,
+
+    /// API Key from https://getblock.io
+    #[clap(long = "getblock-api-key")]
+    pub getblock_api_key: Option<String>,
 }
 
 pub fn from_args() -> Opts {

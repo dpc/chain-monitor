@@ -497,7 +497,7 @@ async fn main() -> Result<()> {
 
     let mut app_state = AppState::new();
 
-    let source = source::get_source()?;
+    let source = source::get_source(&opts)?;
     app_state.add_chains(source.get_supported_chains());
     app_state.add_sources(source.get_supported_sources());
 
