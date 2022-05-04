@@ -11,6 +11,7 @@ use std::{
 use strum::IntoStaticStr;
 use tokio::sync::Mutex;
 use tracing::debug;
+
 mod bitgo;
 mod bitgov1;
 mod blockchain;
@@ -18,6 +19,7 @@ mod blockchair;
 mod blockcypher;
 mod cmc;
 mod mempoolspace;
+mod other;
 
 #[async_trait]
 pub trait Source: Sync {
@@ -65,6 +67,7 @@ pub enum SourceId {
     CMC,
     MempoolSpace,
     BitGoV1,
+    Other,
 }
 
 impl SourceId {
@@ -77,6 +80,7 @@ impl SourceId {
             SourceId::BlockCypher => "BlockCypher",
             SourceId::MempoolSpace => "mempool.space",
             SourceId::CMC => "CoinMarketCap",
+            SourceId::Other => "Other",
         }
     }
     pub fn short_name(self) -> &'static str {
@@ -356,6 +360,7 @@ pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
         Box::new(blockcypher::BlockCypher::new()?),
         Box::new(mempoolspace::MempoolSpace::new()?),
         Box::new(cmc::CoinMarketCap::new()?),
+        Box::new(other::Other::new()?),
     ])
 }
 

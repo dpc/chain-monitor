@@ -118,6 +118,7 @@ impl super::StaticSource for Blockchair {
         Dash,
         Mixin,
         Groestlcoin,
+        ZCash,
     ];
 
     async fn check_updates(&self, recorder: &dyn ChainUpdateRecorder) {
