@@ -10,11 +10,11 @@ use axum::{
     middleware,
     response::{Headers, Html, IntoResponse},
     routing::{get, get_service, IntoMakeService},
-    Router,
+    Json, Router,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use metrics::gauge;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use source::{ChainId, Source, SourceId};
 use std::{
     cmp,
@@ -49,7 +49,7 @@ pub fn get_now_ts() -> u64 {
     u64::try_from(time::OffsetDateTime::now_utc().unix_timestamp()).expect("no negative timestamps")
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainStateTs {
     first_seen_ts: u64,
@@ -69,7 +69,7 @@ impl ChainStateTs {
     }
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq, Deserialize)]
 pub struct ChainState {
     hash: BlockHash,
     height: ChainHeight,
@@ -145,6 +145,28 @@ pub struct ChainInfo {
 pub struct ChainStates {
     states: HashMap<(SourceId, ChainId), ChainStateTs>,
     best_height: HashMap<ChainId, ChainHeight>,
+}
+
+impl ChainStates {
+    fn to_best_states(&self) -> HashMap<&'static str, ChainStateTs> {
+        self.best_height
+            .iter()
+            .map(|(best_height_chain, best_height)| {
+                (
+                    best_height_chain.ticker(),
+                    self.states
+                        .iter()
+                        .filter(|((_, state_chain), state)| {
+                            best_height_chain == state_chain && state.state.height == *best_height
+                        })
+                        .next()
+                        .expect("must find something")
+                        .1
+                        .clone(),
+                )
+            })
+            .collect()
+    }
 }
 
 // Our shared state
@@ -353,6 +375,8 @@ fn setup_server(
         app
     };
 
+    let app = app.route("/state", get(get_state_handler));
+
     let app = app
         // routes are matched from bottom to top, so we have to put `nest` at the
         // top since it matches all routes
@@ -404,6 +428,12 @@ async fn sound1_mp3_handler() -> impl IntoResponse {
         Headers([("Content-Type", "audio/mpeg")]),
         include_bytes!("../assets/sound1.mp3") as &'static [u8],
     )
+}
+
+async fn get_state_handler(
+    Extension(state): Extension<Arc<AppState>>,
+) -> axum::extract::Json<HashMap<&'static str, ChainStateTs>> {
+    Json(state.chain_states.lock().await.to_best_states())
 }
 
 async fn ws_handler(
@@ -497,7 +527,7 @@ async fn main() -> Result<()> {
 
     let mut app_state = AppState::new();
 
-    let source = source::get_source()?;
+    let source = source::get_source(&opts)?;
     app_state.add_chains(source.get_supported_chains());
     app_state.add_sources(source.get_supported_sources());
 

@@ -1,4 +1,4 @@
-use crate::ChainUpdateRecorder;
+use crate::{opts::Opts, ChainUpdateRecorder};
 use anyhow::Result;
 use axum::async_trait;
 use futures::future::join_all;
@@ -17,6 +17,7 @@ mod bitgov1;
 mod blockchain;
 mod blockchair;
 mod blockcypher;
+mod chainmonitor;
 mod cmc;
 mod mempoolspace;
 mod other;
@@ -68,6 +69,7 @@ pub enum SourceId {
     MempoolSpace,
     BitGoV1,
     Other,
+    ChainMonitor,
 }
 
 impl SourceId {
@@ -81,6 +83,7 @@ impl SourceId {
             SourceId::MempoolSpace => "mempool.space",
             SourceId::CMC => "CoinMarketCap",
             SourceId::Other => "Other",
+            SourceId::ChainMonitor => "ChainMonitor",
         }
     }
     pub fn short_name(self) -> &'static str {
@@ -242,6 +245,61 @@ impl ChainId {
         self.into()
     }
 
+    pub fn from_ticker(ticker: &str) -> Option<Self> {
+        Some(match ticker {
+            "algo" => ChainId::Algorand,
+            "avax" => ChainId::Avalanche,
+            "bnb" => ChainId::BinanceCoin,
+            "btc" => ChainId::Bitcoin,
+            "bch" => ChainId::BitcoinCash,
+            "btg" => ChainId::BitcoinGold,
+            "bsv" => ChainId::BitcoinSV,
+            "ada" => ChainId::Cardano,
+            "cspr" => ChainId::Casper,
+            "celo" => ChainId::Celo,
+            "dash" => ChainId::Dash,
+            "doge" => ChainId::Doge,
+            "xec" => ChainId::ECash,
+            "eos" => ChainId::Eos,
+            "eth" => ChainId::Ethereum,
+            "etc" => ChainId::EthereumClassic,
+            "grs" => ChainId::Groestlcoin,
+            "hbar" => ChainId::HederaHashgraph,
+            "ksm" => ChainId::Kusama,
+            "ltc" => ChainId::Litecoin,
+            "xin" => ChainId::Mixin,
+            "mnr" => ChainId::Monero,
+            "dot" => ChainId::Polkadot,
+            "xrp" => ChainId::Ripple,
+            "rbtc" => ChainId::RSK,
+            "sol" => ChainId::Solana,
+            "stx" => ChainId::Stacks,
+            "xlm" => ChainId::Stellar,
+            "xtz" => ChainId::Tezos,
+            "zec" => ChainId::ZCash,
+            "algo-testnet" => ChainId::AlgorandTestnet,
+            "bch-testnet" => ChainId::BitcoinCashTestnet,
+            "bsv-testnet" => ChainId::BitcoinSVTestnet,
+            "btc-testnet" => ChainId::BitcoinTestnet,
+            "cspr-testnet" => ChainId::CasperTestnet,
+            "celo-testnet" => ChainId::CeloTestnet,
+            "dash-testnet" => ChainId::DashTestnet,
+            "eos-testnet" => ChainId::EosTestnet,
+            "eth-testnet" => ChainId::EthereumGoerliTestnet,
+            "thbar" => ChainId::HederaHashgraphTestnet,
+            "ltc-testnet" => ChainId::LitecoinTestnet,
+            "xrp-testnet" => ChainId::RippleTestnet,
+            "rbtc-testnet" => ChainId::RSKTestnet,
+            "sol-testnet" => ChainId::SolanaTestnet,
+            "stx-testnet" => ChainId::StacksTestnet,
+            "xlm-testnet" => ChainId::StellarTestnet,
+            "xtz-testnet" => ChainId::TezosTestnet,
+            "zec-testnet" => ChainId::ZCashTestnet,
+            "btc-signet" => ChainId::BitcoinSignet,
+            _ => return None,
+        })
+    }
+
     pub fn ticker(self) -> &'static str {
         match self {
             ChainId::Algorand => "algo",
@@ -351,9 +409,9 @@ impl ChainId {
     }
 }
 
-pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
-    Ok(vec![
-        Box::new(bitgo::BitGo::new()?),
+pub(crate) fn get_source(opts: &Opts) -> Result<Vec<Box<dyn Source>>> {
+    let mut sources = vec![
+        Box::new(bitgo::BitGo::new()?) as Box<dyn Source>,
         Box::new(bitgov1::BitGoV1::new()?),
         Box::new(blockchain::Blockchain::new()?),
         Box::new(blockchair::Blockchair::new()?),
@@ -361,7 +419,12 @@ pub(crate) fn get_source() -> Result<Vec<Box<dyn Source>>> {
         Box::new(mempoolspace::MempoolSpace::new()?),
         Box::new(cmc::CoinMarketCap::new()?),
         Box::new(other::Other::new()?),
-    ])
+    ];
+
+    for mirror in &opts.mirror {
+        sources.push(Box::new(chainmonitor::ChainMonitor::new(mirror.clone())?) as Box<dyn Source>)
+    }
+    Ok(sources)
 }
 
 #[async_trait]

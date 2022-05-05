@@ -18,6 +18,10 @@ pub struct Opts {
 
     #[clap(long = "enable-prometheus")]
     pub enable_prometheus: bool,
+
+    /// Mirror another instance of chainmonitor
+    #[clap(long = "mirror")]
+    pub mirror: Vec<String>,
 }
 
 pub fn from_args() -> Opts {
