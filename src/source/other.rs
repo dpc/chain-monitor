@@ -48,12 +48,13 @@ impl Other {
         Ok(match chain {
             ChainId::Algorand => self.get_algorand_chain_state().await?,
             ChainId::Avalanche => self.get_avalanche_chain_state().await?,
-            ChainId::Stacks => self.get_stacks_chain_state().await?,
-            ChainId::EthereumClassic => self.get_etc_chain_state().await?,
+            ChainId::BitcoinGold => self.get_btg_chain_state().await?,
             ChainId::Casper => self.get_casper_chain_state().await?,
             ChainId::Celo => self.get_celo_chain_state().await?,
-            ChainId::Tezos => self.get_tezos_chain_state().await?,
+            ChainId::EthereumClassic => self.get_etc_chain_state().await?,
             ChainId::HederaHashgraph => self.get_hedera_chain_state().await?,
+            ChainId::Stacks => self.get_stacks_chain_state().await?,
+            ChainId::Tezos => self.get_tezos_chain_state().await?,
             _ => unreachable!(),
         })
     }
@@ -104,6 +105,25 @@ impl Other {
         Ok(ChainState {
             hash: hash[0].to_owned(),
             height: block_number[1].parse::<u64>()?,
+        })
+    }
+
+    pub async fn get_btg_chain_state(&self) -> Result<ChainState> {
+        let value = self
+            .get_json("https://explorer.bitcoingold.org/insight-api/blocks?limit=1")
+            .await?;
+
+        let last_block = as_not_null(&value["blocks"][0])
+            .ok_or_else(|| format_err!("missing last block data"))?;
+
+        Ok(ChainState {
+            hash: last_block["hash"]
+                .as_str()
+                .ok_or_else(|| format_err!("missing hash"))?
+                .to_owned(),
+            height: last_block["height"]
+                .as_u64()
+                .ok_or_else(|| format_err!("missing height"))?,
         })
     }
 
@@ -225,7 +245,8 @@ impl Other {
                 .as_str()
                 .ok_or_else(|| format_err!("missing height"))?
                 .parse::<f64>()?
-                - 1596139200f64) / 5.) as u64,
+                - 1596139200f64)
+                / 5.) as u64,
         })
     }
     pub async fn get_tezos_chain_state(&self) -> Result<ChainState> {
@@ -251,6 +272,7 @@ impl super::StaticSource for Other {
     const SUPPORTED_CHAINS: &'static [ChainId] = &[
         Algorand,
         Avalanche,
+        BitcoinGold,
         Casper,
         Celo,
         EthereumClassic,
