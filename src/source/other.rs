@@ -53,6 +53,7 @@ impl Other {
             ChainId::Casper => self.get_casper_chain_state().await?,
             ChainId::Celo => self.get_celo_chain_state().await?,
             ChainId::Tezos => self.get_tezos_chain_state().await?,
+            ChainId::HederaHashgraph => self.get_hedera_chain_state().await?,
             _ => unreachable!(),
         })
     }
@@ -207,6 +208,26 @@ impl Other {
         })
     }
 
+    pub async fn get_hedera_chain_state(&self) -> Result<ChainState> {
+        let value = self
+            .get_json("https://mainnet-public.mirrornode.hedera.com/api/v1/transactions?limit=1")
+            .await?;
+
+        let last_tx = as_not_null(&value["transactions"][0])
+            .ok_or_else(|| format_err!("missing last block data"))?;
+
+        Ok(ChainState {
+            hash: last_tx["transaction_hash"]
+                .as_str()
+                .ok_or_else(|| format_err!("missing hash"))?
+                .to_owned(),
+            height: ((last_tx["consensus_timestamp"]
+                .as_str()
+                .ok_or_else(|| format_err!("missing height"))?
+                .parse::<f64>()?
+                - 1596139200f64) / 5.) as u64,
+        })
+    }
     pub async fn get_tezos_chain_state(&self) -> Result<ChainState> {
         let value = self
             .get_json("https://api.tzstats.com/explorer/tip")
@@ -230,10 +251,11 @@ impl super::StaticSource for Other {
     const SUPPORTED_CHAINS: &'static [ChainId] = &[
         Algorand,
         Avalanche,
-        Stacks,
-        EthereumClassic,
         Casper,
         Celo,
+        EthereumClassic,
+        HederaHashgraph,
+        Stacks,
         Tezos,
     ];
 
