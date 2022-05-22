@@ -1,9 +1,11 @@
 {
-  description = "Auction Sniper in Rust";
+  description = "Chain Monitor";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
+    crane.url = "github:ipetkov/crane";
+    crane.inputs.nixpkgs.follows = "nixpkgs";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -21,35 +23,46 @@
     };
   };
 
-  outputs = { self, naersk, nixpkgs, flake-utils, flake-compat, fenix }:
+  outputs = { self, naersk, nixpkgs, flake-utils, flake-compat, fenix, crane }:
     flake-utils.lib.eachDefaultSystem (system:
     let
-      pkgs = nixpkgs.legacyPackages."${system}";
-      fenix-pkgs = fenix.packages.${system};
-      fenix-channel = fenix-pkgs.complete;
-      naersk-lib = naersk.lib."${system}".override {
-        inherit (fenix-channel) cargo rustc;
+      pkgs = import nixpkgs {
+        inherit system;
       };
-    in rec {
-      packages.chain-monitor = naersk-lib.buildPackage ./.;
+      fenix-pkgs = fenix.packages.${system};
+      fenix-channel = fenix-pkgs.stable;
 
-      defaultPackage = self.packages.${system}.chain-monitor;
-      defaultApp = self.packages.${system}.chain-monitor;
+      craneLib = (crane.mkLib pkgs).overrideScope' (final: prev: {
+        # inherit (fenix-channel) cargo rustc;
+      });
 
-      # `nix develop`
-      devShell = pkgs.mkShell
-        {
-          inputsFrom = builtins.attrValues self.packages.${system};
-          buildInputs = [ pkgs.libsodium pkgs.lzma pkgs.openssl ];
-          nativeBuildInputs = (with pkgs;
-            [
-              pkgconfig
-              gnuplot
-              fenix-pkgs.rust-analyzer
-              fenix-channel.rustfmt
-              fenix-channel.rustc
-            ]);
-          RUST_SRC_PATH = "${fenix-channel.rust-src}/lib/rustlib/src/rust/library";
-        };
+      src = ./.;
+
+      cargoArtifacts = craneLib.buildDepsOnly {
+        inherit src;
+        buildInputs = [ pkgs.libsodium pkgs.lzma pkgs.openssl ];
+        nativeBuildInputs = [
+          pkgs.pkgconfig
+          fenix-channel.rustc
+        ];
+      };
+
+      chain-monitor = craneLib.buildPackage {
+        inherit cargoArtifacts src;
+      };
+
+    in {
+      defaultPackage = chain-monitor;
+
+      devShell = pkgs.mkShell {
+
+        buildInputs = cargoArtifacts.buildInputs;
+        nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ [
+          fenix-pkgs.rust-analyzer
+          fenix-channel.rustfmt
+          # fenix-channel.rustc
+        ];
+        RUST_SRC_PATH = "${fenix-channel.rust-src}/lib/rustlib/src/rust/library";
+      };
   });
 }
