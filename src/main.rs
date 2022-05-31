@@ -151,19 +151,14 @@ impl ChainStates {
     fn to_best_states(&self) -> HashMap<&'static str, ChainStateTs> {
         self.best_height
             .iter()
-            .map(|(best_height_chain, best_height)| {
-                (
-                    best_height_chain.ticker(),
-                    self.states
-                        .iter()
-                        .filter(|((_, state_chain), state)| {
-                            best_height_chain == state_chain && state.state.height == *best_height
-                        })
-                        .next()
-                        .expect("must find something")
-                        .1
-                        .clone(),
-                )
+            .filter_map(|(best_height_chain, best_height)| {
+                self.states
+                    .iter()
+                    .filter(|((_, state_chain), state)| {
+                        best_height_chain == state_chain && state.state.height == *best_height
+                    })
+                    .next()
+                    .map(|s| (best_height_chain.ticker(), s.1.clone()))
             })
             .collect()
     }
